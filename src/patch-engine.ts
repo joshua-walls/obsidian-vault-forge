@@ -11,7 +11,6 @@
 //   remove_tag      — remove a tag if present
 //   replace_tag     — atomic remove + add
 //   normalize_tags  — sort and deduplicate tags
-//   import_note     — move from System/Inbox, apply frontmatter
 //   compute_field   — derive field from file metadata
 //   sort_frontmatter — reorder fields into canonical order
 //   move_note       — move notes to a new location
@@ -107,6 +106,7 @@ export interface PatchOperation {
   frontmatter?: Record<string, unknown>;
   source_root?: string;
   destination_folder?: string;
+  strip_frontmatter?: boolean;
 }
 
 export interface PatchFile {
@@ -213,13 +213,6 @@ export async function applyPatch(
   // ── Process each operation ───────────────────────────────────────
   for (const op of patchFile.operations) {
     const opName = op.op ?? "<unknown>";
-
-    // import_note is vault-level, not file-level
-    if (opName === "import_note") {
-      const result = await applyImportNote(app, op, settings, dryRun);
-      results.push(result);
-      continue;
-    }
 
     // Resolve target files
     const targets = resolveTargets(app, op.target, op.target_pattern);
@@ -607,13 +600,13 @@ async function applyMoveNote(
   if (!destinationFolder) return opError("move_note", file, "Missing destination_folder");
   if (!sourceRoot) return opError("move_note", file, "Missing source_root");
 
+  // Validate strip_frontmatter and frontmatter are not both set
+  if (op.strip_frontmatter && op.frontmatter) {
+    return opError("move_note", file, "Cannot use both strip_frontmatter and frontmatter");
+  }
+
   const normalizedSourceRoot = normalizePath(sourceRoot).toLowerCase();
   const filePath = normalizePath(file.path);
-
-  // Skip system files
-  if (filePath.toLowerCase().startsWith("system/")) {
-    return opSkipped("move_note", file, "System file — skipped");
-  }
 
   if (!filePath.toLowerCase().startsWith(normalizedSourceRoot + "/")) {
     return opError("move_note", file, `File is not under source_root '${sourceRoot}'`);
@@ -633,86 +626,34 @@ async function applyMoveNote(
 
   if (!dryRun) {
     await ensureFolder(app, normalizePath(destPath.substring(0, destPath.lastIndexOf("/"))));
-    await app.vault.rename(file, destPath);
+
+    // Handle frontmatter changes before moving
+    if (op.strip_frontmatter || op.frontmatter) {
+      const note = await readNote(app, file);
+      let content = await app.vault.read(file);
+
+      if (op.strip_frontmatter) {
+        // Strip frontmatter entirely — keep body only
+        const bodyMatch = content.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n?([\s\S]*)$/);
+        content = bodyMatch ? bodyMatch[1] : content;
+      } else if (op.frontmatter && note) {
+        // Merge — op.frontmatter wins on conflicts, existing fields survive
+        const merged = { ...note.frontmatter, ...op.frontmatter };
+        const sorted = sortFrontmatterFields(merged);
+        const yamlStr = stringifyYaml(sorted).trimEnd();
+        const bodyMatch = content.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n?([\s\S]*)$/);
+        const body = bodyMatch ? bodyMatch[1] : content;
+        content = `---\n${yamlStr}\n---\n${body}`;
+      }
+
+      await app.vault.create(destPath, content);
+      await app.vault.delete(file);
+    } else {
+      await app.vault.rename(file, destPath);
+    }
   }
 
   return opChanged("move_note", file, `Moved → ${destPath}`);
-}
-
-async function applyImportNote(
-  app: App,
-  op: PatchOperation,
-  settings: VaultForgeSettings,
-  dryRun: boolean
-): Promise<PatchOpResult> {
-  const paths = getVaultPaths(settings);
-  const destination = op.destination;
-
-  if (!destination) {
-    return {
-      op: "import_note",
-      file: "<unknown>",
-      status: "error",
-      detail: "import_note requires destination",
-    };
-  }
-
-  const sourceName = op.source ?? destination.split("/").pop() ?? "";
-  const inboxPath = normalizePath(`${paths.inbox}/${sourceName}`);
-  const destPath = normalizePath(destination);
-
-  const sourceFile = app.vault.getAbstractFileByPath(inboxPath);
-  if (!(sourceFile instanceof TFile)) {
-    return {
-      op: "import_note",
-      file: destPath,
-      status: "error",
-      detail: `Source not found in Inbox: ${inboxPath}`,
-    };
-  }
-
-  if (app.vault.getAbstractFileByPath(destPath)) {
-    return {
-      op: "import_note",
-      file: destPath,
-      status: "skipped",
-      detail: `Destination already exists: ${destPath}`,
-    };
-  }
-
-  if (!dryRun) {
-    await ensureFolder(
-      app,
-      normalizePath(destPath.substring(0, destPath.lastIndexOf("/")))
-    );
-
-    // Build frontmatter from op.frontmatter
-    const fm: Record<string, unknown> = {};
-    if (op.frontmatter) {
-      Object.assign(fm, op.frontmatter);
-    }
-
-    // Get body — strip frontmatter if source has it
-    let body = await app.vault.read(sourceFile);
-    const fmMatch = body.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n?([\s\S]*)$/);
-    if (fmMatch) body = fmMatch[1];
-
-    const sorted = sortFrontmatterFields(fm);
-    const yamlStr = stringifyYaml(sorted).trimEnd();
-    const finalContent = Object.keys(sorted).length > 0
-      ? `---\n${yamlStr}\n---\n${body}`
-      : body;
-
-    await app.vault.create(destPath, finalContent);
-    await app.vault.delete(sourceFile);
-  }
-
-  return {
-    op: "import_note",
-    file: destPath,
-    status: "changed",
-    detail: `Imported from Inbox → ${destPath}`,
-  };
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

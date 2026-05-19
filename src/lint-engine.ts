@@ -27,7 +27,7 @@ import type { VaultForgeSettings } from "./settings";
 import { getVaultPaths } from "./vault-paths";
 import { VaultSchema, SchemaField, loadSchema } from "./utils/schema";
 import { getTags } from "./utils/tags";
-import { getMarkdownFiles, isExempt, safeTimestamp, todayString } from "./utils/files";
+import { buildExemptList, getMarkdownFiles, isExempt, safeTimestamp, todayString } from "./utils/files";
 import { readNote, isFieldPresent, getFmString } from "./utils/frontmatter";
 import { ensureFolder } from "./utils/files";
 
@@ -71,10 +71,8 @@ export async function runLint(
   if (!schema) return null;
 
   const paths = getVaultPaths(settings);
-  const exemptPaths = [
-    ...schema.exempt_paths,
-    paths.vaultForge,          // never lint VaultForge system files
-  ];
+  const exemptPaths = buildExemptList(schema.exempt_paths, paths.vaultForge);
+
 
   const allFiles = getMarkdownFiles(app).filter(
     (f) => !isExempt(f.path, exemptPaths)

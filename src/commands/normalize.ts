@@ -29,7 +29,7 @@ import {
   convertTagSeparator,
   isInvalidTag,
 } from "../utils/tags";
-import { getMarkdownFiles, isExempt, safeTimestamp, todayString } from "../utils/files";
+import { buildExemptList, getMarkdownFiles, isExempt, safeTimestamp, todayString } from "../utils/files";
 import { loadSchema } from "../utils/schema";
 import { ensureFolder } from "../utils/files";
 
@@ -48,10 +48,8 @@ export async function runNormalizeTags(plugin: VaultForgePlugin): Promise<void> 
   const paths = getVaultPaths(settings);
 
   const schema = await loadSchema(app, settings);
-  const exemptPaths = [
-    ...(schema?.exempt_paths ?? []),
-    paths.vaultForge,
-  ];
+  const exemptPaths = buildExemptList(schema?.exempt_paths ?? [], paths.vaultForge);
+
 
   const files = getMarkdownFiles(app).filter(
     (f) => !isExempt(f.path, exemptPaths)

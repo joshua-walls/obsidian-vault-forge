@@ -205,3 +205,15 @@ export function safeTimestamp(): string {
 export function todayString(): string {
   return new Date().toISOString().substring(0, 10);
 }
+
+/**
+ * Builds the full exempt path list for vault scanning commands.
+ * Merges schema-defined exempt paths with the VaultForge control plane folder.
+ * All commands that scan the vault should call this instead of building the list inline.
+ */
+export function buildExemptList(
+  schemaExemptPaths: string[],
+  vaultForgeFolder: string
+): string[] {
+  return [...schemaExemptPaths, vaultForgeFolder];
+}
