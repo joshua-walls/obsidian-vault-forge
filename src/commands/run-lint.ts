@@ -53,6 +53,85 @@ export async function runVaultLint(plugin: VaultForgePlugin): Promise<LintRunRes
   return result;
 }
 
+interface GroupedLintReason {
+  label: string;
+  files: string[];
+}
+
+interface GroupedLintItem {
+  rule: string;
+  summary: string;
+  reasons: GroupedLintReason[];
+}
+
+function summarizeLintMessage(rule: string, message: string): string {
+  if (rule === "inline_undocumented") {
+    return "Inline keys are undocumented — consider adding to inline_fields in schema.md";
+  }
+
+  if (rule === "tag_namespace") {
+    return "Tags are not namespaced. Expected format: namespace/tag";
+  }
+
+  return message;
+}
+
+function extractLintReason(rule: string, message: string): string {
+  if (rule === "inline_undocumented") {
+    const match = message.match(/Inline key '([^']+)'/);
+    return match ? `'${match[1]}'` : message;
+  }
+
+  if (rule === "tag_namespace") {
+    const match = message.match(/Tag '([^']+)'/);
+    return match ? `'${match[1]}'` : message;
+  }
+
+  return message;
+}
+
+function groupLintItems(items: Array<{ rule: string; message: string; file: string }>): GroupedLintItem[] {
+  const groups = new Map<string, GroupedLintItem>();
+  const reasons = new Map<string, GroupedLintReason>();
+  const seenReasonFiles = new Set<string>();
+
+  for (const item of items) {
+    const summary = summarizeLintMessage(item.rule, item.message);
+    const reasonLabel = extractLintReason(item.rule, item.message);
+
+    const groupKey = `${item.rule}::${summary}`;
+    const reasonKey = `${groupKey}::${reasonLabel}`;
+    const reasonFileKey = `${reasonKey}::${item.file}`;
+
+    let group = groups.get(groupKey);
+    if (!group) {
+      group = {
+        rule: item.rule,
+        summary,
+        reasons: [],
+      };
+      groups.set(groupKey, group);
+    }
+
+    let reason = reasons.get(reasonKey);
+    if (!reason) {
+      reason = {
+        label: reasonLabel,
+        files: [],
+      };
+      reasons.set(reasonKey, reason);
+      group.reasons.push(reason);
+    }
+
+    if (!seenReasonFiles.has(reasonFileKey)) {
+      seenReasonFiles.add(reasonFileKey);
+      reason.files.push(item.file);
+    }
+  }
+
+  return [...groups.values()];
+}
+
 // ── Modal ─────────────────────────────────────────────────────────────────────
 
 class LintResultsModal extends Modal {
@@ -77,61 +156,132 @@ class LintResultsModal extends Modal {
     contentEl.empty();
 
     const r = this.result;
-    const passed = r.errors.length === 0;
+    const failed =
+      r.errors.length > 0 ||
+      (this.plugin.settings.lintStrictMode && r.warnings.length > 0);
 
     contentEl.createEl("h2", {
-      text: passed ? "✅ Vault Lint — Passed" : "🔴 Vault Lint — Errors Found",
+      text: failed
+        ? "❌ Vault Lint — Failed"
+        : "✅ Vault Lint — Passed",
     });
 
-    // Stats
-    const statsEl = contentEl.createDiv("vault-forge-lint-stats");
+    const summaryEl = contentEl.createDiv("vault-forge-lint-summary");
 
-    const statItem = (label: string, count: number, cls: string) => {
-      const el = statsEl.createDiv(`vault-forge-stat ${cls}`);
-      el.createSpan({ text: String(count), cls: "vault-forge-stat-count" });
-      el.createSpan({ text: ` ${label}`, cls: "vault-forge-stat-label" });
-    };
+    summaryEl.createEl("div", {
+      text: `${r.errors.length} errors`,
+    });
 
-    statItem("errors",   r.errors.length,   r.errors.length   > 0 ? "vault-forge-stat-error"   : "vault-forge-stat-ok");
-    statItem("warnings", r.warnings.length, r.warnings.length > 0 ? "vault-forge-stat-warning" : "vault-forge-stat-ok");
-    statItem("info",     r.infos.length,    "vault-forge-stat-info");
+    summaryEl.createEl("div", {
+      text: `${r.warnings.length} warnings`,
+    });
 
-    contentEl.createEl("p", {
+    summaryEl.createEl("div", {
+      text: `${r.infos.length} info`,
+    });
+
+    summaryEl.createEl("br");
+
+    summaryEl.createEl("div", {
       text: `${r.envelope.notes_scanned} notes scanned`,
-      cls: "vault-forge-scan-count",
     });
 
-    // Error preview — show first 10
     if (r.errors.length > 0) {
       contentEl.createEl("h3", { text: "Errors" });
-      const list = contentEl.createEl("ul", { cls: "vault-forge-lint-list" });
-      for (const e of r.errors.slice(0, 10)) {
-        const li = list.createEl("li");
-        li.createEl("code", { text: e.file });
-        li.createSpan({ text: ` [${e.rule}] ${e.message}` });
-      }
-      if (r.errors.length > 10) {
-        list.createEl("li", {
-          text: `…and ${r.errors.length - 10} more errors. See the lint run note for full details.`,
-          cls: "vault-forge-more",
+
+      for (const group of groupLintItems(r.errors)) {
+        contentEl.createEl("div", {
+          text: `[${group.rule}]`,
+          cls: "vault-forge-lint-rule",
         });
+
+        contentEl.createEl("div", {
+          text: group.summary,
+          cls: "vault-forge-lint-message",
+        });
+
+        for (const reason of group.reasons) {
+          contentEl.createEl("h4", {
+            text: reason.label,
+            cls: "vault-forge-lint-reason",
+          });
+
+          const list = contentEl.createEl("ul", {
+            cls: "vault-forge-lint-list",
+          });
+
+          for (const file of reason.files) {
+            list.createEl("li", {
+              text: file,
+            });
+          }
+        }
       }
     }
 
-    // Warning preview — show first 5
-    if (r.warnings.length > 0 && r.errors.length === 0) {
+    if (r.warnings.length > 0) {
       contentEl.createEl("h3", { text: "Warnings" });
-      const list = contentEl.createEl("ul", { cls: "vault-forge-lint-list" });
-      for (const w of r.warnings.slice(0, 5)) {
-        const li = list.createEl("li");
-        li.createEl("code", { text: w.file });
-        li.createSpan({ text: ` [${w.rule}] ${w.message}` });
-      }
-      if (r.warnings.length > 5) {
-        list.createEl("li", {
-          text: `…and ${r.warnings.length - 5} more warnings.`,
-          cls: "vault-forge-more",
+
+      for (const group of groupLintItems(r.warnings)) {
+        contentEl.createEl("div", {
+          text: `[${group.rule}]`,
+          cls: "vault-forge-lint-rule",
         });
+
+        contentEl.createEl("div", {
+          text: group.summary,
+          cls: "vault-forge-lint-message",
+        });
+
+        for (const reason of group.reasons) {
+          contentEl.createEl("h4", {
+            text: reason.label,
+            cls: "vault-forge-lint-reason",
+          });
+
+          const list = contentEl.createEl("ul", {
+            cls: "vault-forge-lint-list",
+          });
+
+          for (const file of reason.files) {
+            list.createEl("li", {
+              text: file,
+            });
+          }
+        }
+      }
+    }
+
+    if (r.infos.length > 0) {
+      contentEl.createEl("h3", { text: "Info" });
+
+      for (const group of groupLintItems(r.infos)) {
+        contentEl.createEl("div", {
+          text: `[${group.rule}]`,
+          cls: "vault-forge-lint-rule",
+        });
+
+        contentEl.createEl("div", {
+          text: group.summary,
+          cls: "vault-forge-lint-message",
+        });
+
+        for (const reason of group.reasons) {
+          contentEl.createEl("h4", {
+            text: reason.label,
+            cls: "vault-forge-lint-reason",
+          });
+
+          const list = contentEl.createEl("ul", {
+            cls: "vault-forge-lint-list",
+          });
+
+          for (const file of reason.files) {
+            list.createEl("li", {
+              text: file,
+            });
+          }
+        }
       }
     }
 

@@ -130,7 +130,7 @@ async function trimLintRunNotes(
 
   if (files.length <= settings.lintRunRetentionCount) {
     return [{ task: "lint_runs", target: paths.lintRuns, status: "skipped",
-      detail: `${files.length} lint run notes, within retention limit of ${settings.lintRunRetentionCount}` }];
+      detail: `${files.length} lint report notes, within retention limit of ${settings.lintRunRetentionCount}` }];
   }
 
   const toRemove = files.slice(0, files.length - settings.lintRunRetentionCount);
@@ -141,7 +141,7 @@ async function trimLintRunNotes(
       await app.vault.delete(file);
     }
     results.push({ task: "lint_runs", target: file.path, status: "removed",
-      detail: `Lint run note over retention limit of ${settings.lintRunRetentionCount}` });
+      detail: `Lint report note over retention limit of ${settings.lintRunRetentionCount}` });
   }
 
   return results;

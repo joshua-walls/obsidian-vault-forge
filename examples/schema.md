@@ -6,7 +6,7 @@ Configured schema location:
 {{schemaFile}}
 ```
 
-## Schema
+# Schema
 
 ```yaml
 meta:

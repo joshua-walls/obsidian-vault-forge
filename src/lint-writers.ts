@@ -3,7 +3,7 @@
 //
 // Port of the output writer functions in Invoke-VaultLint.ps1:
 //   Write-LintReportJson  → System/Exports/lint-report.json
-//   Write-LintRunMd       → System/Exports/LintRuns/lint-run-{timestamp}.md
+//   Write-LintRunMd       → System/Exports/LintReports/lint-run-{timestamp}.md
 //   Append-LintHistory    → System/Exports/lint-history.json
 //
 // Note: lint-report.md (the human-readable full report) from the PowerShell
@@ -116,7 +116,7 @@ export async function appendLintHistory(
 // ── Lint run note ─────────────────────────────────────────────────────────────
 
 /**
- * Writes a lint run note to System/Exports/LintRuns/.
+ * Writes a lint run note to System/Exports/LintReports/.
  * Each run produces one note. Old notes are cleaned up by Vault Maintenance.
  *
  * Port of Write-LintRunMd from Invoke-VaultLint.ps1.
@@ -143,6 +143,85 @@ export async function writeLintRunNote(
   }
 
   return notePath;
+}
+
+interface GroupedLintReason {
+  label: string;
+  files: string[];
+}
+
+interface GroupedLintItem {
+  rule: string;
+  summary: string;
+  reasons: GroupedLintReason[];
+}
+
+function summarizeLintMessage(rule: string, message: string): string {
+  if (rule === "inline_undocumented") {
+    return "Inline keys are undocumented — consider adding to inline_fields in schema.md";
+  }
+
+  if (rule === "tag_namespace") {
+    return "Tags are not namespaced. Expected format: namespace/tag";
+  }
+
+  return message;
+}
+
+function extractLintReason(rule: string, message: string): string {
+  if (rule === "inline_undocumented") {
+    const match = message.match(/Inline key '([^']+)'/);
+    return match ? `'${match[1]}'` : message;
+  }
+
+  if (rule === "tag_namespace") {
+    const match = message.match(/Tag '([^']+)'/);
+    return match ? `'${match[1]}'` : message;
+  }
+
+  return message;
+}
+
+function groupLintItems(items: Array<{ rule: string; message: string; file: string }>): GroupedLintItem[] {
+  const groups = new Map<string, GroupedLintItem>();
+  const reasons = new Map<string, GroupedLintReason>();
+  const seenReasonFiles = new Set<string>();
+
+  for (const item of items) {
+    const summary = summarizeLintMessage(item.rule, item.message);
+    const reasonLabel = extractLintReason(item.rule, item.message);
+
+    const groupKey = `${item.rule}::${summary}`;
+    const reasonKey = `${groupKey}::${reasonLabel}`;
+    const reasonFileKey = `${reasonKey}::${item.file}`;
+
+    let group = groups.get(groupKey);
+    if (!group) {
+      group = {
+        rule: item.rule,
+        summary,
+        reasons: [],
+      };
+      groups.set(groupKey, group);
+    }
+
+    let reason = reasons.get(reasonKey);
+    if (!reason) {
+      reason = {
+        label: reasonLabel,
+        files: [],
+      };
+      reasons.set(reasonKey, reason);
+      group.reasons.push(reason);
+    }
+
+    if (!seenReasonFiles.has(reasonFileKey)) {
+      seenReasonFiles.add(reasonFileKey);
+      reason.files.push(item.file);
+    }
+  }
+
+  return [...groups.values()];
 }
 
 function buildLintRunNote(run: LintRunResult, today: string, fileLinks: boolean): string {
@@ -185,25 +264,23 @@ function buildLintRunNote(run: LintRunResult, today: string, fileLinks: boolean)
     if (items.length === 0) continue;
     lines.push(`## ${label}`, "");
 
-    // Group by rule, then list all affected files under each rule heading
-    const byRule = new Map<string, { files: string[]; message: string }>();
-    for (const r of items) {
-      if (!byRule.has(r.rule)) {
-        byRule.set(r.rule, { files: [], message: r.message });
-      }
-      byRule.get(r.rule)!.files.push(r.file);
-    }
+    for (const group of groupLintItems(items)) {
+      lines.push(`### \`[${group.rule}]\``);
+      lines.push("");
+      lines.push(group.summary);
+      lines.push("");
 
-    for (const [rule, { files, message }] of byRule) {
-      lines.push(`### \`[${rule}]\``);
-      lines.push("");
-      lines.push(message);
-      lines.push("");
-      for (const file of files) {
-        const fileRef = fileLinks ? `[[${file}]]` : `\`${file}\``;
-        lines.push(`- ${fileRef}`);
+      for (const reason of group.reasons) {
+        lines.push(`#### ${reason.label}`);
+        lines.push("");
+
+        for (const file of reason.files) {
+          const fileRef = fileLinks ? `[[${file}]]` : `\`${file}\``;
+          lines.push(`- ${fileRef}`);
+        }
+
+        lines.push("");
       }
-      lines.push("");
     }
   }
 

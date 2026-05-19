@@ -10,6 +10,8 @@ Designed for users who treat their vault like durable infrastructure.
 
 ![Vault Forge Screenshot](assets/screenshot-main.png)
 
+Vault Forge treats vault maintenance as an explicit operational workflow.
+
 ---
 
 ## What Vault Forge Does
@@ -265,7 +267,9 @@ Recommended practices:
 
 # Screenshots
 
-## Lint Results
+## Vault Lint
+
+Detect schema violations, metadata drift, invalid tags, and structural inconsistencies.
 
 ![Lint Results](assets/screenshot-lint.png)
 
@@ -273,17 +277,23 @@ Recommended practices:
 
 ## Schema Validation
 
+Define explicit metadata contracts and validate vault structure against a canonical schema.
+
 ![Schema Validation](assets/screenshot-schema.png)
 
 ---
 
 ## Patch Operations
 
+Apply reviewable vault operations with backups, reports, and restore manifests.
+
 ![Patch Operations](assets/screenshot-patch.png)
 
 ---
 
 ## Settings
+
+Configure system paths, patch behavior, linting rules, backups, and maintenance retention.
 
 ![Settings](assets/screenshot-settings.png)
 
@@ -312,7 +322,7 @@ Vault Forge exists to help long-lived Obsidian vaults remain:
 - Consistent
 - Maintainable
 
-Treat your vault like durable infrastructure.
+Treat your vault like durable infrastructure instead of disposable notes.
 
 ---
 

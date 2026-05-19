@@ -17,6 +17,16 @@ operations:
     target: "Home.md"
     field: status
     value: active
+
+  - op: add_tag
+    target: "Home.md"
+    tag: topic/home
+
+  - op: normalize_tags
+    target_pattern: "Projects/**/*.md"
+
+  - op: sort_frontmatter
+    target_pattern: "Notes/**/*.md"
 ```
 
 # Notes

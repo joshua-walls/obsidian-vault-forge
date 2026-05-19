@@ -14,7 +14,7 @@ export interface VaultForgeSettings {
   schemaNoteFile: string;      // schema.md
   exportsFolder: string;       // System/Exports/
   patchesFolder: string;       // System/VaultForge/Patches/
-  lintRunsFolder: string;      // System/Exports/LintRuns/
+  lintRunsFolder: string;      // System/Exports/LintReports/
   inboxFolder: string;         // System/Inbox/
   patternsFolder: string;      // System/Patterns/
 
@@ -48,7 +48,7 @@ export const DEFAULT_SETTINGS: VaultForgeSettings = {
   schemaNoteFile: "schema.md",
   exportsFolder: "System/Exports",
   patchesFolder: "System/VaultForge/Patches",
-  lintRunsFolder: "System/Exports/LintRuns",
+  lintRunsFolder: "System/Exports/LintReports",
   inboxFolder: "System/Inbox",
   patternsFolder: "System/Patterns",
 

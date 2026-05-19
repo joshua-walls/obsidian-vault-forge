@@ -60,6 +60,7 @@ export function getVaultPaths(settings: VaultForgeSettings): VaultPaths {
     lintReportJson: `${s.exportsFolder}/lint-report.json`,
     lintHistoryJson: `${s.exportsFolder}/lint-history.json`,
     vaultMeta: `${s.exportsFolder}/vault-meta.json`,
+    // Human-readable lint report notes
     lintRuns: s.lintRunsFolder,
 
     // Vault structure
