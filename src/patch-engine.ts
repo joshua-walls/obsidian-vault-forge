@@ -93,6 +93,7 @@ export interface PatchOperation {
   lowercase?: boolean;
   uppercase?: boolean;
   only_if_missing?: boolean;
+  when?: { field: string; equals: string };
   tag?: string;
   old_tag?: string;
   new_tag?: string;
@@ -312,6 +313,15 @@ async function applySetField(
 
   if (onlyIfMissing && isFieldPresent(fm, fieldName)) {
     return opSkipped("set_field", file, `Field '${fieldName}' already has a value`);
+  }
+
+  // when condition — skip unless field equals expected value
+  if (op.when) {
+    const whenVal = fm[op.when.field];
+    const whenCurrent = whenVal === undefined ? "" : String(whenVal);
+    if (whenCurrent !== op.when.equals) {
+      return opSkipped("set_field", file, `Condition not met: '${op.when.field}' is '${whenCurrent}', expected '${op.when.equals}'`);
+    }
   }
 
   // Resolve the new value

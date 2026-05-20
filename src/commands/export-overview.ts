@@ -216,17 +216,16 @@ function buildExportNote(
     `total_private_notes:: ${totalPrivate}`,
     "",
     `> Generated ${inventory.generated_at}`,
-    "> Machine-readable data: `vault-inventory.json`, `vault-meta.json`",
     "",
-    `# All Notes by ${domainLabel}`,
+    `## All Notes by ${domainLabel}`,
     "",
     ...tableRows(countBy(allItems, "domain"), domainLabel),
     "",
-    `# All Notes by ${typeLabel}`,
+    `## All Notes by ${typeLabel}`,
     "",
     ...tableRows(countBy(allItems, "type"), typeLabel),
     "",
-    `# All Notes by ${statusLabel}`,
+    `## All Notes by ${statusLabel}`,
     "",
     ...tableRows(countBy(allItems, "status"), statusLabel),
     "",
@@ -236,20 +235,27 @@ function buildExportNote(
     lines.push(
       "---",
       "",
-      `# Private Notes by ${domainLabel}`,
+      `## Private Notes by ${domainLabel}`,
       "",
       ...tableRows(countBy(privateItems, "domain"), domainLabel),
       "",
-      `# Private Notes by ${typeLabel}`,
+      `## Private Notes by ${typeLabel}`,
       "",
       ...tableRows(countBy(privateItems, "type"), typeLabel),
       "",
-      `# Private Notes by ${statusLabel}`,
+      `## Private Notes by ${statusLabel}`,
       "",
       ...tableRows(countBy(privateItems, "status"), statusLabel),
       "",
     );
   }
+
+  lines.push(
+    "---",
+    "",
+    "Machine-readable data: `vault-inventory.json`, `vault-meta.json`",
+    "",
+  );
 
   return lines.join("\n");
 }
@@ -274,7 +280,7 @@ function buildDashboardNote(settings: ForgePlugin["settings"], today: string): s
     "",
     "> This dashboard is generated once and never overwritten — edit freely.",
     "",
-    "# Vault Overview",
+    "## Vault Overview",
     "",
     "```dataview",
     `TABLE total_notes, total_private_notes, generated, schema_version`,
@@ -282,7 +288,7 @@ function buildDashboardNote(settings: ForgePlugin["settings"], today: string): s
     `WHERE contains(tags, "meta/vault-export") AND file.name = "vault-export"`,
     "```",
     "",
-    "# Ontology Indexes",
+    `## Ontology Indexes`,
     "",
     "```dataview",
     `TABLE total_notes, total_private_notes, relationship_heading, generated`,
@@ -295,7 +301,7 @@ function buildDashboardNote(settings: ForgePlugin["settings"], today: string): s
 
   if (privateEnabled) {
     lines.push(
-      "# Private Note Breakdown",
+      "## Private Note Breakdown",
       "",
       "```dataview",
       `TABLE total_private_notes, total_notes, generated`,

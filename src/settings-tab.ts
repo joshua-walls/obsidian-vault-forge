@@ -185,7 +185,7 @@ export class ForgeSettingsTab extends PluginSettingTab {
     this.renderSchemaFieldDropdown(
       el,
       "Review cycle field",
-      "The frontmatter field that holds the review cycle value (e.g. review_cycle).",
+      "The frontmatter field that holds the review cadence. Must be an enum field in your schema with values: daily, weekly, monthly, quarterly, yearly, never.",
       allFields,
       this.plugin.settings.staleReviewCycleField,
       async (v) => {
@@ -421,7 +421,7 @@ export class ForgeSettingsTab extends PluginSettingTab {
 
     new Setting(el)
       .setName("Export Vault Overview")
-      .setDesc("Builds vault-inventory.json, vault-meta.json, and vault-export.md in one pass. Inventory is schema-optional; meta requires schema.")
+      .setDesc("Builds vault-inventory.json, vault-meta.json, and vault-overview.md in one pass. Inventory is schema-optional; meta requires schema and excludes ai_private notes.")
       .addButton((btn) =>
         btn.setButtonText("Run").onClick(async () => {
           runExportOverview(this.plugin).catch((e: Error) => {

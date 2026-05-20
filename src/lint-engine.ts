@@ -21,6 +21,7 @@
 //   inline_fuzzy_schema    — inline key looks like a typo of a schema field
 //   inline_fuzzy_inline    — inline key looks like a typo of a known inline field
 //   inline_undocumented    — inline key not in schema inline_fields list
+//   stale_note             — note's review cycle has elapsed
 
 import { App, TFile } from "obsidian";
 import type { ForgeSettings } from "./settings";
@@ -86,6 +87,14 @@ export async function runLint(
   for (const file of allFiles) {
     const fileResults = await lintFile(app, file, schema, validShapes);
     allResults.push(...fileResults);
+  }
+
+  // Stale note review — runs after per-file lint, uses settings not schema
+  if (settings.staleReviewEnabled &&
+      settings.staleReviewCycleField &&
+      settings.staleReviewUpdatedField) {
+    const staleResults = await runStaleReview(app, allFiles, settings);
+    allResults.push(...staleResults);
   }
 
   const envelope: LintRunEnvelope = {
@@ -510,6 +519,73 @@ function newResult(
   message: string
 ): LintResult {
   return { file, severity, rule, message };
+}
+
+// ── Stale note review ────────────────────────────────────────────────────────
+
+/** Maps review cycle enum values to days. */
+const CYCLE_DAYS: Record<string, number> = {
+  daily:     1,
+  weekly:    7,
+  monthly:   30,
+  quarterly: 90,
+  yearly:    365,
+};
+
+async function runStaleReview(
+  app: App,
+  files: TFile[],
+  settings: ForgeSettings
+): Promise<LintResult[]> {
+  const results: LintResult[] = [];
+  const {
+    staleReviewCycleField,
+    staleReviewUpdatedField,
+    staleReviewFilterField,
+    staleReviewStatuses,
+  } = settings;
+
+  const now = Date.now();
+
+  for (const file of files) {
+    const note = await readNote(app, file);
+    if (!note?.hasFrontmatter) continue;
+
+    const fm = note.frontmatter;
+
+    // Apply in-scope filter — skip if filter field is configured and value not in list
+    if (staleReviewFilterField && staleReviewStatuses.length > 0) {
+      const fieldVal = getFmString(fm, staleReviewFilterField);
+      if (!fieldVal || !staleReviewStatuses.includes(fieldVal)) continue;
+    }
+
+    // Read cycle value
+    const cycleRaw = getFmString(fm, staleReviewCycleField).toLowerCase().trim();
+    if (!cycleRaw || cycleRaw === "never") continue;
+
+    const cycleDays = CYCLE_DAYS[cycleRaw];
+    if (!cycleDays) continue; // unknown value — skip silently
+
+    // Read last updated date
+    const updatedRaw = getFmString(fm, staleReviewUpdatedField);
+    if (!updatedRaw) continue;
+
+    const updated = new Date(updatedRaw);
+    if (isNaN(updated.getTime())) continue;
+
+    const ageDays = (now - updated.getTime()) / (1000 * 60 * 60 * 24);
+
+    if (ageDays > cycleDays) {
+      results.push(newResult(
+        file.path,
+        "warning",
+        "stale_note",
+        `Note is overdue for review — cycle: ${cycleRaw} (${cycleDays}d), last updated: ${updatedRaw} (${Math.floor(ageDays)} days ago)`
+      ));
+    }
+  }
+
+  return results;
 }
 
 function getValidShapeNames(app: App, patternsPath: string): string[] {

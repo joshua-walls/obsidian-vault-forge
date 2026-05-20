@@ -1,13 +1,47 @@
+# 0.5.4
+
+## Added
+
+- `when` condition on `set_field` patch operation — skip the operation unless a specified field equals a specified value; enables conditional field updates without separate patch passes
+
+```yaml
+- op: set_field
+  target_pattern: "**/*.md"
+  field: review_cycle
+  value: monthly
+  when:
+    field: review_cycle
+    equals: "1"
+```
+
+---
+
+# 0.5.3
+
+## Added
+
+- **Stale note review** — fully wired into the lint engine; flags notes whose review cycle has elapsed as `warning` with rule `stale_note`
+- Review cycle field now uses named enum values: `daily`, `weekly`, `monthly`, `quarterly`, `yearly`, `never` — no more ambiguous numbers; `never` is always skipped
+- Day mapping: `daily` = 1, `weekly` = 7, `monthly` = 30, `quarterly` = 90, `yearly` = 365
+- Notes missing the cycle field, last updated field, or with unknown cycle values are skipped silently
+
+## Changed
+
+- `examples/schema.md` updated — `review_cycle` enum values changed from `[1, 3, 6, 12, never]` to `[daily, weekly, monthly, quarterly, yearly, never]`
+- Settings description for review cycle field updated to communicate required enum values
+- `4.Linting.md` updated with cycle value semantics and day mappings
+
+---
+
 # 0.5.2
 
 ## Changed
 
-- Updated vault-native documentation to reflect 0.5.0 export architecture —
-  commands, settings, and export docs revised; examples unchanged
+- Updated vault-native documentation to reflect 0.5.0 export architecture — commands, settings, and export docs revised; examples unchanged
 
 ---
 
-# 0.5.1
+# 0.5.0
 
 ## Added
 
