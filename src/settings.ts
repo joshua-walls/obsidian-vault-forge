@@ -63,6 +63,7 @@ export interface ForgeSettings {
   // ── Shapes settings ─────────────────────────────────────────────
   shapesEnabled: boolean;
   shapesFolder: string;              // System/Shapes/
+  shapeLintEnabled: boolean;         // validate heading structure against templates
 
   // Template refinement
   shapeRefinementEnabled: boolean;
@@ -135,6 +136,7 @@ export const DEFAULT_SETTINGS: ForgeSettings = {
   // Shapes
   shapesEnabled: false,
   shapesFolder: "System/Shapes",
+  shapeLintEnabled: false,
   shapeRefinementEnabled: false,
   shapeTemplatesFolder: "System/Templates",
   shapeTypeTargetField: "type",

@@ -903,6 +903,28 @@ export class ForgeSettingsTab extends PluginSettingTab {
       "System/Shapes"
     );
 
+    // ── Shape Lint ────────────────────────────────────────────────
+    el.createEl("h3", { text: "Shape Lint" });
+    el.createEl("p", {
+      text: "When enabled, lint runs validate note heading structure against the " +
+            "corresponding shape template. Severity follows the Lint tab strict mode setting.",
+      cls: "setting-item-description",
+    });
+
+    new Setting(el)
+      .setName("Enable shape heading validation")
+      .setDesc(
+        "Checks that notes matching a shape have all required headings, " +
+        "in the correct order, with no empty sections."
+      )
+      .addToggle((t) =>
+        t.setValue(s.shapeLintEnabled).onChange(async (v) => {
+          s.shapeLintEnabled = v;
+          await this.plugin.saveSettings();
+          this.display();
+        })
+      );
+
     // ── Template Refinement ───────────────────────────────────────
     el.createEl("h3", { text: "Template Refinement" });
     el.createEl("p", {
