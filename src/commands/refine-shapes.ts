@@ -135,8 +135,8 @@ async function processShape(
   // Build frontmatter
   const today = todayString();
   const existingTemplate = app.vault.getAbstractFileByPath(templatePath);
-  const existingCreated = existingTemplate instanceof TFile
-    ? await getExistingCreated(app, existingTemplate)
+  const existingCreated = (existingTemplate instanceof TFile && settings.shapeCreatedField)
+    ? await getExistingCreated(app, existingTemplate, settings.shapeCreatedField)
     : null;
 
   const fm = buildTemplateFrontmatter(settings, shapeName, today, existingCreated);
@@ -167,7 +167,7 @@ function buildTemplateFrontmatter(
   today: string,
   existingCreated: string | null
 ): Record<string, unknown> {
-  const { shapeTypeTargetField, shapeTemplateFields, frontmatterFieldOrder } = settings;
+  const { shapeTypeTargetField, shapeCreatedField, shapeUpdatedField, shapeTemplateFields, frontmatterFieldOrder } = settings;
 
   // Start with configured field values (included fields only)
   const base: Record<string, unknown> = {};
@@ -180,9 +180,13 @@ function buildTemplateFrontmatter(
   // Type target field always set to shape name
   base[shapeTypeTargetField] = shapeName;
 
-  // Runtime timestamps — always present
-  base["created"] = existingCreated ?? today;
-  base["updated"] = today;
+  // Runtime date fields — only stamp if configured
+  if (shapeCreatedField) {
+    base[shapeCreatedField] = existingCreated ?? today;
+  }
+  if (shapeUpdatedField) {
+    base[shapeUpdatedField] = today;
+  }
 
   // Sort into frontmatterFieldOrder
   const order = frontmatterFieldOrder.length > 0 ? frontmatterFieldOrder : Object.keys(base);
@@ -276,11 +280,12 @@ function shapeToTemplateName(shapeName: string): string {
 
 async function getExistingCreated(
   app: import("obsidian").App,
-  file: TFile
+  file: TFile,
+  createdField: string
 ): Promise<string | null> {
   const note = await readNote(app, file);
   if (!note) return null;
-  const val = note.frontmatter["created"];
+  const val = note.frontmatter[createdField];
   if (val && typeof val === "string") return val;
   return null;
 }

@@ -1,3 +1,21 @@
+# 0.6.1
+
+## Added
+
+- **Created field** — configurable date field stamped when a template is first created; dropdown populated from `type: date` fields in schema; set to none to skip; defaults to `created`
+- **Updated field** — configurable date field stamped on every template write; same dropdown; defaults to `updated`
+
+## Changed
+
+- Created and updated fields are now excluded from the template field configurator automatically alongside the type target field; the runtime note at the bottom of the configurator reflects whichever fields are currently configured
+- Type target field dropdown now triggers a full tab re-render on change so the configurator grid immediately reflects the exclusion
+
+## Fixed
+
+- Type target field was not excluded from the template field configurator when changed; the grid now updates immediately on selection change
+
+----
+
 # 0.6.0
 
 ## Added

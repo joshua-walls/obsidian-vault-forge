@@ -68,6 +68,8 @@ export interface ForgeSettings {
   shapeRefinementEnabled: boolean;
   shapeTemplatesFolder: string;      // folder where templates are written
   shapeTypeTargetField: string;      // schema field that receives the shape name (e.g. "type", "kind")
+  shapeCreatedField: string;         // date field stamped on create (blank = skip)
+  shapeUpdatedField: string;         // date field stamped on every write (blank = skip)
   shapeTemplateFields: Record<string, { include: boolean; value: unknown }>;
   // ^ keyed by field name; created/updated are runtime-only, never stored here
 
@@ -136,6 +138,8 @@ export const DEFAULT_SETTINGS: ForgeSettings = {
   shapeRefinementEnabled: false,
   shapeTemplatesFolder: "System/Templates",
   shapeTypeTargetField: "type",
+  shapeCreatedField: "created",
+  shapeUpdatedField: "updated",
   shapeTemplateFields: {},
 
   // Frontmatter field order

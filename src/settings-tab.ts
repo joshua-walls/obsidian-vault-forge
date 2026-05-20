@@ -567,7 +567,7 @@ export class ForgeSettingsTab extends PluginSettingTab {
 
     new Setting(el)
       .setName("Export Vault Overview")
-      .setDesc("Builds vault-inventory.json, vault-meta.json, and vault-overview.md in one pass. Inventory is schema-optional; meta requires schema.")
+      .setDesc("Builds vault-inventory.json, vault-meta.json, and vault-overview.md in one pass. Inventory is schema-optional; meta requires schema and excludes ai_private notes.")
       .addButton((btn) =>
         btn.setButtonText("Run").onClick(async () => {
           runExportOverview(this.plugin).catch((e: Error) => {
@@ -947,15 +947,28 @@ export class ForgeSettingsTab extends PluginSettingTab {
     el.createEl("h3", { text: "Template Field Configuration" });
     el.createEl("p", {
       text: "Configure which schema fields appear in generated templates and what value each gets. " +
-            "The type target field always receives the shape name and is excluded here. " +
-            "created and updated are set automatically at runtime.",
+            "The type target field and configured date fields are excluded — they are set automatically at runtime.",
       cls: "setting-item-description",
     });
 
     // Type target field — dropdown of all schema field names
     this.renderShapeTypeTargetField(el);
 
-    // Per-field configurator — rendered async from schema
+    // Created / updated field pickers — date fields from schema
+    this.renderShapeDateField(
+      el,
+      "Created field",
+      "Schema date field stamped when a template is first created. Set to none to skip.",
+      "shapeCreatedField"
+    );
+
+    this.renderShapeDateField(
+      el,
+      "Updated field",
+      "Schema date field stamped every time a template is written. Set to none to skip.",
+      "shapeUpdatedField"
+    );
+
     this.renderShapeFieldConfigurator(el);
   }
 
@@ -994,6 +1007,47 @@ export class ForgeSettingsTab extends PluginSettingTab {
       });
   }
 
+  private renderShapeDateField(
+    el: HTMLElement,
+    name: string,
+    desc: string,
+    settingKey: "shapeCreatedField" | "shapeUpdatedField"
+  ): void {
+    const s = this.plugin.settings;
+
+    new Setting(el)
+      .setName(name)
+      .setDesc(desc)
+      .addDropdown(async (dd) => {
+        dd.addOption("", "— none —");
+
+        const schema = await loadSchema(this.plugin.app, s);
+        if (schema) {
+          const dateFields = [
+            ...schema.required_fields,
+            ...schema.optional_fields,
+          ]
+            .filter((f) => f.type === "date")
+            .map((f) => f.name);
+
+          for (const fieldName of dateFields) {
+            dd.addOption(fieldName, fieldName);
+          }
+
+          const current = s[settingKey] ?? "";
+          dd.setValue(dateFields.includes(current) ? current : "");
+        } else {
+          dd.setValue(s[settingKey] ?? "");
+        }
+
+        dd.onChange(async (v) => {
+          s[settingKey] = v;
+          await this.plugin.saveSettings();
+          this.display();
+        });
+      });
+  }
+
   private renderShapeFieldConfigurator(el: HTMLElement): void {
     const s = this.plugin.settings;
 
@@ -1026,7 +1080,11 @@ export class ForgeSettingsTab extends PluginSettingTab {
         : allFields;
 
       // Filter out runtime fields
-      const runtimeFields = new Set(["created", "updated", s.shapeTypeTargetField].filter(Boolean));
+      const runtimeFields = new Set([
+        s.shapeTypeTargetField,
+        s.shapeCreatedField,
+        s.shapeUpdatedField,
+      ].filter(Boolean));
       const configurable = ordered.filter((f) => !runtimeFields.has(f.name));
 
       if (configurable.length === 0) {
@@ -1048,8 +1106,15 @@ export class ForgeSettingsTab extends PluginSettingTab {
       }
 
       // Runtime fields note
+      const runtimeNote = [
+        "The type target field is always set to the shape name.",
+        s.shapeCreatedField ? `'${s.shapeCreatedField}' is stamped on create.` : null,
+        s.shapeUpdatedField ? `'${s.shapeUpdatedField}' is stamped on every write.` : null,
+        "These fields are excluded from this list.",
+      ].filter(Boolean).join(" ");
+
       container.createEl("p", {
-        text: "The type target field, created, and updated are set automatically and are not configurable here.",
+        text: runtimeNote,
         cls: "setting-item-description forge-shape-runtime-note",
       });
     });
