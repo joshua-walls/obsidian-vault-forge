@@ -123,9 +123,10 @@ export function parseNote(raw: string, file: TFile): VaultNote {
  */
 export async function writeNote(
   app: App,
-  note: VaultNote
+  note: VaultNote,
+  fieldOrder?: string[]
 ): Promise<void> {
-  const sorted = sortFrontmatterFields(note.frontmatter);
+  const sorted = sortFrontmatterFields(note.frontmatter, fieldOrder);
   const yaml = stringifyYaml(sorted).trimEnd();
   const newContent = `---\n${yaml}\n---\n${note.body}`;
   await app.vault.modify(note.file, newContent);
@@ -175,12 +176,14 @@ export async function backupNote(
  * Port of Sort-FrontmatterFields from Shared/Schema/Sort-FrontmatterFields.ps1.
  */
 export function sortFrontmatterFields(
-  frontmatter: Record<string, unknown>
+  frontmatter: Record<string, unknown>,
+  fieldOrder?: string[]
 ): Record<string, unknown> {
+  const order = fieldOrder ?? PREFERRED_FIELD_ORDER;
   const result: Record<string, unknown> = {};
 
   // Known fields first, in preferred order
-  for (const field of PREFERRED_FIELD_ORDER) {
+  for (const field of order) {
     if (Object.prototype.hasOwnProperty.call(frontmatter, field)) {
       result[field] = frontmatter[field];
     }
@@ -188,7 +191,7 @@ export function sortFrontmatterFields(
 
   // Remaining fields alphabetically
   const remaining = Object.keys(frontmatter)
-    .filter((k) => !PREFERRED_FIELD_ORDER.includes(k))
+    .filter((k) => !order.includes(k))
     .sort();
 
   for (const key of remaining) {

@@ -121,7 +121,7 @@ async function normalizeTagsPass(
     if (!dryRun) {
       await backupNote(app, file, paths.patchBackups);
       setTags(note.frontmatter, normalized);
-      await writeNote(app, note);
+      await writeNote(app, note, settings.frontmatterFieldOrder);
     }
 
     results.push({
@@ -245,7 +245,7 @@ async function normalizeFrontmatterPass(
 
     if (!dryRun) {
       await backupNote(app, file, paths.patchBackups);
-      await writeNote(app, note);
+      await writeNote(app, note, settings.frontmatterFieldOrder);
     }
 
     results.push({

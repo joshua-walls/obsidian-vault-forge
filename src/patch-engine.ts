@@ -235,28 +235,28 @@ export async function applyPatch(
 
       switch (opName) {
         case "set_field":
-          result = await applySetField(app, op, file, dryRun);
+          result = await applySetField(app, op, file, dryRun, settings.frontmatterFieldOrder);
           break;
         case "remove_field":
-          result = await applyRemoveField(app, op, file, dryRun);
+          result = await applyRemoveField(app, op, file, dryRun, settings.frontmatterFieldOrder);
           break;
         case "add_tag":
-          result = await applyAddTag(app, op, file, dryRun);
+          result = await applyAddTag(app, op, file, dryRun, settings.frontmatterFieldOrder);
           break;
         case "remove_tag":
-          result = await applyRemoveTag(app, op, file, dryRun);
+          result = await applyRemoveTag(app, op, file, dryRun, settings.frontmatterFieldOrder);
           break;
         case "replace_tag":
-          result = await applyReplaceTagOp(app, op, file, dryRun);
+          result = await applyReplaceTagOp(app, op, file, dryRun, settings.frontmatterFieldOrder);
           break;
         case "normalize_tags":
-          result = await applyNormalizeTags(app, op, file, dryRun);
+          result = await applyNormalizeTags(app, op, file, dryRun, settings.frontmatterFieldOrder);
           break;
         case "compute_field":
-          result = await applyComputeField(app, op, file, dryRun);
+          result = await applyComputeField(app, op, file, dryRun, settings.frontmatterFieldOrder);
           break;
         case "sort_frontmatter":
-          result = await applySortFrontmatter(app, op, file, dryRun);
+          result = await applySortFrontmatter(app, op, file, dryRun, settings.frontmatterFieldOrder);
           break;
         case "move_note":
           result = await applyMoveNote(app, op, file, settings, dryRun);
@@ -297,7 +297,8 @@ async function applySetField(
   app: App,
   op: PatchOperation,
   file: TFile,
-  dryRun: boolean
+  dryRun: boolean,
+  fieldOrder: string[]
 ): Promise<PatchOpResult> {
   const fieldName = op.field;
   if (!fieldName) {
@@ -342,7 +343,7 @@ async function applySetField(
 
   if (!dryRun) {
     fm[fieldName] = newValue;
-    await writeNote(app, note);
+    await writeNote(app, note, fieldOrder);
   }
 
   return opChanged("set_field", file, `Set '${fieldName}': ${currentStr} → ${newStr}`);
@@ -352,7 +353,8 @@ async function applyRemoveField(
   app: App,
   op: PatchOperation,
   file: TFile,
-  dryRun: boolean
+  dryRun: boolean,
+  fieldOrder: string[]
 ): Promise<PatchOpResult> {
   const fieldName = op.field;
   if (!fieldName) return opError("remove_field", file, "Missing field name");
@@ -366,7 +368,7 @@ async function applyRemoveField(
 
   if (!dryRun) {
     delete note.frontmatter[fieldName];
-    await writeNote(app, note);
+    await writeNote(app, note, fieldOrder);
   }
 
   return opChanged("remove_field", file, `Removed field '${fieldName}'`);
@@ -376,7 +378,8 @@ async function applyAddTag(
   app: App,
   op: PatchOperation,
   file: TFile,
-  dryRun: boolean
+  dryRun: boolean,
+  fieldOrder: string[]
 ): Promise<PatchOpResult> {
   const tag = op.tag;
   if (!tag) return opError("add_tag", file, "Missing tag");
@@ -393,7 +396,7 @@ async function applyAddTag(
 
   if (!dryRun) {
     setTags(note.frontmatter, updated);
-    await writeNote(app, note);
+    await writeNote(app, note, fieldOrder);
   }
 
   return opChanged("add_tag", file, `Added tag '${tag}'`);
@@ -403,7 +406,8 @@ async function applyRemoveTag(
   app: App,
   op: PatchOperation,
   file: TFile,
-  dryRun: boolean
+  dryRun: boolean,
+  fieldOrder: string[]
 ): Promise<PatchOpResult> {
   const tag = op.tag;
   if (!tag) return opError("remove_tag", file, "Missing tag");
@@ -420,7 +424,7 @@ async function applyRemoveTag(
 
   if (!dryRun) {
     setTags(note.frontmatter, updated);
-    await writeNote(app, note);
+    await writeNote(app, note, fieldOrder);
   }
 
   return opChanged("remove_tag", file, `Removed tag '${tag}'`);
@@ -430,7 +434,8 @@ async function applyReplaceTagOp(
   app: App,
   op: PatchOperation,
   file: TFile,
-  dryRun: boolean
+  dryRun: boolean,
+  fieldOrder: string[]
 ): Promise<PatchOpResult> {
   const oldTag = op.old_tag;
   const newTagVal = op.new_tag;
@@ -459,7 +464,7 @@ async function applyReplaceTagOp(
 
   if (!dryRun) {
     setTags(note.frontmatter, updated);
-    await writeNote(app, note);
+    await writeNote(app, note, fieldOrder);
   }
 
   return opChanged("replace_tag", file, `Replaced tag '${oldTag}' → '${newTagVal}'`);
@@ -469,7 +474,8 @@ async function applyNormalizeTags(
   app: App,
   op: PatchOperation,
   file: TFile,
-  dryRun: boolean
+  dryRun: boolean,
+  fieldOrder: string[]
 ): Promise<PatchOpResult> {
   const note = await readNote(app, file);
   if (!note) return opError("normalize_tags", file, "Could not read file");
@@ -486,7 +492,7 @@ async function applyNormalizeTags(
 
   if (!dryRun) {
     setTags(note.frontmatter, normalized);
-    await writeNote(app, note);
+    await writeNote(app, note, fieldOrder);
   }
 
   return opChanged("normalize_tags", file, "Normalized tags");
@@ -496,7 +502,8 @@ async function applyComputeField(
   app: App,
   op: PatchOperation,
   file: TFile,
-  dryRun: boolean
+  dryRun: boolean,
+  fieldOrder: string[]
 ): Promise<PatchOpResult> {
   const fieldName = op.field;
   const strategy = op.strategy;
@@ -563,7 +570,7 @@ async function applyComputeField(
 
   if (!dryRun) {
     fm[fieldName] = newValue;
-    await writeNote(app, note);
+    await writeNote(app, note, fieldOrder);
   }
 
   return opChanged("compute_field", file, `Computed '${fieldName}': '${currentVal}' → '${newValue}'`);
@@ -573,7 +580,8 @@ async function applySortFrontmatter(
   app: App,
   op: PatchOperation,
   file: TFile,
-  dryRun: boolean
+  dryRun: boolean,
+  fieldOrder: string[]
 ): Promise<PatchOpResult> {
   const note = await readNote(app, file);
   if (!note) return opError("sort_frontmatter", file, "Could not read file");
@@ -582,7 +590,7 @@ async function applySortFrontmatter(
     return opSkipped("sort_frontmatter", file, "No frontmatter found");
   }
 
-  const sorted = sortFrontmatterFields(note.frontmatter);
+  const sorted = sortFrontmatterFields(note.frontmatter, fieldOrder);
   const originalKeys = Object.keys(note.frontmatter).join(",");
   const sortedKeys = Object.keys(sorted).join(",");
 
@@ -592,7 +600,7 @@ async function applySortFrontmatter(
 
   if (!dryRun) {
     note.frontmatter = sorted;
-    await writeNote(app, note);
+    await writeNote(app, note, fieldOrder);
   }
 
   return opChanged("sort_frontmatter", file, "Sorted frontmatter fields");
@@ -650,7 +658,7 @@ async function applyMoveNote(
       } else if (op.frontmatter && note) {
         // Merge — op.frontmatter wins on conflicts, existing fields survive
         const merged = { ...note.frontmatter, ...op.frontmatter };
-        const sorted = sortFrontmatterFields(merged);
+        const sorted = sortFrontmatterFields(merged, settings.frontmatterFieldOrder);
         const yamlStr = stringifyYaml(sorted).trimEnd();
         const bodyMatch = content.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n?([\s\S]*)$/);
         const body = bodyMatch ? bodyMatch[1] : content;

@@ -20,6 +20,7 @@ import type ForgePlugin from "./main";
 import { runExportOverview } from "./commands/export-overview";
 import { runExportOntology } from "./commands/export-ontology";
 import { installVaultForgeDocumentation } from "./docs";
+import { loadSchema } from "./utils/schema";
 
 type TabId = "general" | "lint" | "patch" | "maintenance" | "export" | "shapes";
 
@@ -110,6 +111,138 @@ export class ForgeSettingsTab extends PluginSettingTab {
       "forgeFolder",
       "System/Forge"
     );
+
+    this.renderFrontmatterFieldOrder(el);
+  }
+
+  // ── Frontmatter field order ───────────────────────────────────────────────
+
+  private renderFrontmatterFieldOrder(el: HTMLElement): void {
+    el.createEl("h3", { text: "Frontmatter Field Order" });
+    el.createEl("p", {
+      text: "Fields are written in this order when Forge modifies a note. " +
+            "Fields not listed here are appended alphabetically. " +
+            "Drag to reorder, × to remove.",
+      cls: "setting-item-description",
+    });
+
+    const listEl = el.createDiv({ cls: "forge-field-order-list" });
+
+    const save = async () => {
+      const items = Array.from(listEl.querySelectorAll<HTMLElement>(".forge-field-order-item"));
+      this.plugin.settings.frontmatterFieldOrder = items.map(
+        (item) => item.dataset.field ?? ""
+      ).filter(Boolean);
+      await this.plugin.saveSettings();
+    };
+
+    const renderItem = (field: string) => {
+      const item = listEl.createDiv({ cls: "forge-field-order-item", attr: { draggable: "true", "data-field": field } });
+
+      const handle = item.createSpan({ cls: "forge-field-order-handle", text: "⠿" });
+      handle.title = "Drag to reorder";
+
+      item.createSpan({ cls: "forge-field-order-name", text: field });
+
+      const rm = item.createSpan({ cls: "forge-field-order-rm", text: "×" });
+      rm.title = "Remove";
+      rm.addEventListener("click", async () => {
+        item.remove();
+        await save();
+      });
+
+      // Drag-and-drop handlers
+      item.addEventListener("dragstart", (e) => {
+        item.classList.add("forge-field-order-dragging");
+        e.dataTransfer?.setData("text/plain", field);
+      });
+
+      item.addEventListener("dragend", async () => {
+        item.classList.remove("forge-field-order-dragging");
+        await save();
+      });
+
+      item.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        const dragging = listEl.querySelector<HTMLElement>(".forge-field-order-dragging");
+        if (!dragging || dragging === item) return;
+        const rect = item.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        if (e.clientY < midY) {
+          listEl.insertBefore(dragging, item);
+        } else {
+          listEl.insertBefore(dragging, item.nextSibling);
+        }
+      });
+    };
+
+    // Render current order
+    for (const field of this.plugin.settings.frontmatterFieldOrder) {
+      renderItem(field);
+    }
+
+    // ── Add field row ────────────────────────────────────────────────
+    const addRow = el.createDiv({ cls: "forge-field-order-add-row" });
+
+    const input = addRow.createEl("input", {
+      type: "text",
+      cls: "forge-field-order-input",
+      attr: { placeholder: "field_name" },
+    });
+
+    const addBtn = addRow.createEl("button", {
+      text: "Add",
+      cls: "forge-field-order-add-btn",
+    });
+
+    const doAdd = async () => {
+      const val = input.value.trim().toLowerCase().replace(/\s+/g, "_");
+      if (!val) return;
+      const existing = this.plugin.settings.frontmatterFieldOrder;
+      if (existing.includes(val)) {
+        new Notice(`'${val}' is already in the list`);
+        return;
+      }
+      this.plugin.settings.frontmatterFieldOrder = [...existing, val];
+      await this.plugin.saveSettings();
+      renderItem(val);
+      input.value = "";
+    };
+
+    addBtn.addEventListener("click", doAdd);
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter") doAdd(); });
+
+    // ── Prefill from schema ──────────────────────────────────────────
+    new Setting(el)
+      .setName("Prefill from schema")
+      .setDesc(
+        "Replace the field order with required + optional fields from schema.md, " +
+        "in the order they appear in the schema."
+      )
+      .addButton((btn) =>
+        btn.setButtonText("Prefill").onClick(async () => {
+          const schema = await loadSchema(this.plugin.app, this.plugin.settings);
+          if (!schema) {
+            new Notice("Forge: Could not load schema — is schema.md present?");
+            return;
+          }
+          const schemaFields = [
+            ...schema.required_fields.map((f) => f.name),
+            ...schema.optional_fields.map((f) => f.name),
+          ];
+          // Dedupe while preserving order
+          const seen = new Set<string>();
+          const deduped = schemaFields.filter((f) => {
+            if (seen.has(f)) return false;
+            seen.add(f);
+            return true;
+          });
+          this.plugin.settings.frontmatterFieldOrder = deduped;
+          await this.plugin.saveSettings();
+          // Re-render the tab so the list reflects the new order
+          this.display();
+        })
+      );
   }
 
   // ── Lint ─────────────────────────────────────────────────────────────────
@@ -1107,6 +1240,75 @@ export class ForgeSettingsTab extends PluginSettingTab {
       .forge-coming-soon {
         padding: 16px 0;
         opacity: 0.6;
+      }
+      .forge-field-order-list {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin: 8px 0 10px 0;
+      }
+      .forge-field-order-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 10px;
+        border-radius: 4px;
+        border: 1px solid var(--background-modifier-border);
+        background: var(--background-secondary);
+        cursor: default;
+        user-select: none;
+      }
+      .forge-field-order-item.forge-field-order-dragging {
+        opacity: 0.4;
+      }
+      .forge-field-order-handle {
+        cursor: grab;
+        color: var(--text-muted);
+        font-size: 14px;
+        line-height: 1;
+        flex-shrink: 0;
+      }
+      .forge-field-order-handle:active { cursor: grabbing; }
+      .forge-field-order-name {
+        flex: 1;
+        font-size: var(--font-ui-small);
+        font-family: var(--font-monospace);
+        color: var(--text-normal);
+      }
+      .forge-field-order-rm {
+        cursor: pointer;
+        color: var(--text-muted);
+        font-size: 14px;
+        line-height: 1;
+        flex-shrink: 0;
+      }
+      .forge-field-order-rm:hover { color: var(--text-error); }
+      .forge-field-order-add-row {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .forge-field-order-input {
+        flex: 1;
+        padding: 5px 8px;
+        border-radius: 4px;
+        border: 1px solid var(--background-modifier-border);
+        background: var(--background-primary);
+        color: var(--text-normal);
+        font-size: var(--font-ui-small);
+        font-family: var(--font-monospace);
+      }
+      .forge-field-order-add-btn {
+        padding: 5px 14px;
+        border-radius: 4px;
+        border: 1px solid var(--background-modifier-border);
+        background: var(--background-secondary);
+        color: var(--text-normal);
+        cursor: pointer;
+        font-size: var(--font-ui-small);
+      }
+      .forge-field-order-add-btn:hover {
+        background: var(--background-modifier-hover);
       }
     `;
     this.containerEl.appendChild(style);

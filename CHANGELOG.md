@@ -1,3 +1,19 @@
+# 0.5.6
+
+## Added
+
+- **Frontmatter field order** — new setting under **Settings → General**; drag to reorder fields, × to remove, type to add custom fields; controls the canonical sort order applied whenever Forge writes a note
+- **Prefill from schema** button — replaces the field order list with `required_fields` + `optional_fields` from `schema.md` in declaration order; one click to align your sort order with your schema structure
+- `frontmatterFieldOrder` persisted in `data.json`; default matches the previous hardcoded order so existing installs see no behaviour change on upgrade
+
+## Changed
+
+- `sortFrontmatterFields()` and `writeNote()` now accept an optional `fieldOrder` parameter; falls back to the built-in constant when omitted, so external callers remain unaffected
+- All patch engine operations (`set_field`, `remove_field`, `add_tag`, `remove_tag`, `replace_tag`, `normalize_tags`, `compute_field`, `sort_frontmatter`, `move_note`) now use the settings-driven field order
+- Normalize commands (`Normalize Tags`, `Normalize Frontmatter`) now use the settings-driven field order
+
+----
+
 # 0.5.5
 
 ## Added

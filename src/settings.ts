@@ -63,6 +63,12 @@ export interface ForgeSettings {
   // ── Shapes settings ─────────────────────────────────────────────
   shapesEnabled: boolean;
   shapesFolder: string;              // System/Shapes/
+
+  // ── General: frontmatter field order ────────────────────────────
+  // Controls the canonical sort order applied by writeNote() and the
+  // sort_frontmatter patch operation. Fields not in this list are
+  // appended alphabetically after the ordered fields.
+  frontmatterFieldOrder: string[];
 }
 
 export const DEFAULT_SETTINGS: ForgeSettings = {
@@ -120,4 +126,24 @@ export const DEFAULT_SETTINGS: ForgeSettings = {
   // Shapes
   shapesEnabled: false,
   shapesFolder: "System/Shapes",
+
+  // Frontmatter field order
+  frontmatterFieldOrder: [
+    "type",
+    "kind",
+    "domain",
+    "status",
+    "shapes",
+    "tags",
+    "created",
+    "updated",
+    "review_by",
+    "ai_private",
+    "ai_open_questions",
+    "source",
+    "supersedes",
+    "superseded_by",
+    "version",
+    "review_cycle",
+  ],
 };
