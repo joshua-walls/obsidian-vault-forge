@@ -122,7 +122,8 @@ export class ForgeSettingsTab extends PluginSettingTab {
     el.createEl("p", {
       text: "Fields are written in this order when Forge modifies a note. " +
             "Fields not listed here are appended alphabetically. " +
-            "Drag to reorder, × to remove.",
+            "Use 'Prefill from schema' to seed this list from your schema.md, " +
+            "or add fields manually. Drag to reorder, \u00d7 to remove.",
       cls: "setting-item-description",
     });
 

@@ -128,22 +128,5 @@ export const DEFAULT_SETTINGS: ForgeSettings = {
   shapesFolder: "System/Shapes",
 
   // Frontmatter field order
-  frontmatterFieldOrder: [
-    "type",
-    "kind",
-    "domain",
-    "status",
-    "shapes",
-    "tags",
-    "created",
-    "updated",
-    "review_by",
-    "ai_private",
-    "ai_open_questions",
-    "source",
-    "supersedes",
-    "superseded_by",
-    "version",
-    "review_cycle",
-  ],
+  frontmatterFieldOrder: [],
 };
