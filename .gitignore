@@ -5,3 +5,8 @@ data.json
 .env
 dist/
 coverage/
+# Archives
+*.zip
+*.tar
+*.gz
+*.7z
