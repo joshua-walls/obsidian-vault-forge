@@ -3,17 +3,17 @@
 // and writes the patch report note after a patch run.
 //
 // Restore manifest:
-//   System/VaultForge/Patches/Reports/{runId}-patch-manifest.json
+//   System/Forge/Patches/Reports/{runId}-patch-manifest.json
 //
 // Patch report:
-//   System/VaultForge/Patches/Reports/{runId}-patch-report-apply.md
+//   System/Forge/Patches/Reports/{runId}-patch-report-apply.md
 //   System/Exports/{runId}-patch-report-dry-run.md
 //
 // Archived patch note:
-//   System/VaultForge/Patches/Applied/{runId}-vault-patch.md
+//   System/Forge/Patches/Applied/{runId}-vault-patch.md
 
 import { App, TFile, normalizePath } from "obsidian";
-import type { VaultForgeSettings } from "./settings";
+import type { ForgeSettings } from "./settings";
 import { getVaultPaths } from "./vault-paths";
 import { ensureFolder, todayString } from "./utils/files";
 import type { PatchRunResult } from "./patch-engine";
@@ -26,7 +26,7 @@ import type { PatchRunResult } from "./patch-engine";
  */
 export async function writeRestoreManifest(
   app: App,
-  settings: VaultForgeSettings,
+  settings: ForgeSettings,
   result: PatchRunResult
 ): Promise<void> {
   if (!settings.patchBackupEnabled || !settings.patchGenerateManifest) return;
@@ -59,7 +59,7 @@ export async function writeRestoreManifest(
  */
 export async function archivePatchFile(
   app: App,
-  settings: VaultForgeSettings,
+  settings: ForgeSettings,
   result: PatchRunResult
 ): Promise<void> {
   if (result.dryRun) return;
@@ -88,11 +88,11 @@ export async function archivePatchFile(
 /**
  * Writes a human-readable patch report note.
  * For dry runs, writes to System/Exports/ as a preview.
- * For apply runs, writes to System/VaultForge/Patches/Reports/.
+ * For apply runs, writes to System/Forge/Patches/Reports/.
  */
 export async function writePatchReport(
   app: App,
-  settings: VaultForgeSettings,
+  settings: ForgeSettings,
   result: PatchRunResult
 ): Promise<string> {
   const paths = getVaultPaths(settings);

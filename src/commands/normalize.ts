@@ -19,7 +19,7 @@
 //   - Write a summary notice on completion
 
 import { App, Modal, Notice, TFile } from "obsidian";
-import type VaultForgePlugin from "../main";
+import type ForgePlugin from "../main";
 import { getVaultPaths } from "../vault-paths";
 import { readNote, writeNote, backupNote } from "../utils/frontmatter";
 import {
@@ -43,26 +43,26 @@ interface NormalizeResult {
 
 // ── Normalize Tags ────────────────────────────────────────────────────────────
 
-export async function runNormalizeTags(plugin: VaultForgePlugin): Promise<void> {
+export async function runNormalizeTags(plugin: ForgePlugin): Promise<void> {
   const { app, settings } = plugin;
   const paths = getVaultPaths(settings);
 
   const schema = await loadSchema(app, settings);
-  const exemptPaths = buildExemptList(schema?.exempt_paths ?? [], paths.vaultForge);
+  const exemptPaths = buildExemptList(schema?.exempt_paths ?? [], paths.forge);
 
 
   const files = getMarkdownFiles(app).filter(
     (f) => !isExempt(f.path, exemptPaths)
   );
 
-  new Notice("Vault Forge: Scanning tags…", 2000);
+  new Notice("Forge: Scanning tags…", 2000);
 
   // Dry pass
   const dryResults = await normalizeTagsPass(app, settings, files, true);
   const candidates = dryResults.filter((r) => r.changed);
 
   if (candidates.length === 0) {
-    new Notice("Vault Forge: All tags already normalized — no changes needed.", 4000);
+    new Notice("Forge: All tags already normalized — no changes needed.", 4000);
     return;
   }
 
@@ -75,14 +75,14 @@ export async function runNormalizeTags(plugin: VaultForgePlugin): Promise<void> 
     async () => {
       const applyResults = await normalizeTagsPass(app, settings, files, false);
       const changed = applyResults.filter((r) => r.changed).length;
-      new Notice(`Vault Forge: Normalized tags in ${changed} file(s).`, 4000);
+      new Notice(`Forge: Normalized tags in ${changed} file(s).`, 4000);
     }
   ).open();
 }
 
 async function normalizeTagsPass(
   app: App,
-  settings: VaultForgePlugin["settings"],
+  settings: ForgePlugin["settings"],
   files: TFile[],
   dryRun: boolean
 ): Promise<NormalizeResult[]> {
@@ -136,28 +136,28 @@ async function normalizeTagsPass(
 
 // ── Normalize Frontmatter ─────────────────────────────────────────────────────
 
-export async function runNormalizeFrontmatter(plugin: VaultForgePlugin): Promise<void> {
+export async function runNormalizeFrontmatter(plugin: ForgePlugin): Promise<void> {
   const { app, settings } = plugin;
   const paths = getVaultPaths(settings);
 
   const schema = await loadSchema(app, settings);
   const exemptPaths = [
     ...(schema?.exempt_paths ?? []),
-    paths.vaultForge,
+    paths.forge,
   ];
 
   const files = getMarkdownFiles(app).filter(
     (f) => !isExempt(f.path, exemptPaths)
   );
 
-  new Notice("Vault Forge: Scanning frontmatter…", 2000);
+  new Notice("Forge: Scanning frontmatter…", 2000);
 
   // Dry pass
   const dryResults = await normalizeFrontmatterPass(app, settings, files, true, plugin);
   const candidates = dryResults.filter((r) => r.changed);
 
   if (candidates.length === 0) {
-    new Notice("Vault Forge: All frontmatter already normalized — no changes needed.", 4000);
+    new Notice("Forge: All frontmatter already normalized — no changes needed.", 4000);
     return;
   }
 
@@ -170,7 +170,7 @@ export async function runNormalizeFrontmatter(plugin: VaultForgePlugin): Promise
     async () => {
       const applyResults = await normalizeFrontmatterPass(app, settings, files, false, plugin);
       const changed = applyResults.filter((r) => r.changed).length;
-      new Notice(`Vault Forge: Normalized frontmatter in ${changed} file(s).`, 4000);
+      new Notice(`Forge: Normalized frontmatter in ${changed} file(s).`, 4000);
     }
   ).open();
 }
@@ -181,10 +181,10 @@ const DEFAULT_LOWERCASE_FIELDS: string[] = [];
 
 async function normalizeFrontmatterPass(
   app: App,
-  settings: VaultForgePlugin["settings"],
+  settings: ForgePlugin["settings"],
   files: TFile[],
   dryRun: boolean,
-  plugin: VaultForgePlugin
+  plugin: ForgePlugin
 ): Promise<NormalizeResult[]> {
   const paths = getVaultPaths(settings);
   const results: NormalizeResult[] = [];
@@ -261,7 +261,7 @@ async function normalizeFrontmatterPass(
 // ── Shared confirm modal ──────────────────────────────────────────────────────
 
 class NormalizeConfirmModal extends Modal {
-  private plugin: VaultForgePlugin;
+  private plugin: ForgePlugin;
   private title: string;
   private summary: string;
   private candidates: NormalizeResult[];
@@ -269,7 +269,7 @@ class NormalizeConfirmModal extends Modal {
 
   constructor(
     app: App,
-    plugin: VaultForgePlugin,
+    plugin: ForgePlugin,
     title: string,
     summary: string,
     candidates: NormalizeResult[],
@@ -291,25 +291,25 @@ class NormalizeConfirmModal extends Modal {
     contentEl.createEl("p", { text: this.summary });
 
     // Preview list — up to 20
-    const list = contentEl.createEl("ul", { cls: "vault-forge-change-list" });
+    const list = contentEl.createEl("ul", { cls: "forge-change-list" });
     for (const r of this.candidates.slice(0, 20)) {
       list.createEl("li", { text: `${r.file} — ${r.detail}` });
     }
     if (this.candidates.length > 20) {
       list.createEl("li", {
         text: `…and ${this.candidates.length - 20} more`,
-        cls: "vault-forge-more",
+        cls: "forge-more",
       });
     }
 
     if (this.plugin.settings.patchBackupEnabled) {
       contentEl.createEl("p", {
-        text: "Backups will be written to System/VaultForge/Patches/Backups/",
-        cls: "vault-forge-backup-notice",
+        text: "Backups will be written to System/Forge/Patches/Backups/",
+        cls: "forge-backup-notice",
       });
     }
 
-    const buttonRow = contentEl.createDiv("vault-forge-button-row");
+    const buttonRow = contentEl.createDiv("forge-button-row");
 
     const applyBtn = buttonRow.createEl("button", {
       text: "Apply",

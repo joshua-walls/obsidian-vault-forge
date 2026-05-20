@@ -9,13 +9,13 @@
 // since the plugin reads schema.md directly.
 
 import { App, Modal, Notice, TFile } from "obsidian";
-import type VaultForgePlugin from "../main";
+import type ForgePlugin from "../main";
 import { getVaultPaths } from "../vault-paths";
 import { validateSchemaNote, SchemaValidationIssue } from "../utils/schema";
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 
-export async function runValidateSchema(plugin: VaultForgePlugin): Promise<void> {
+export async function runValidateSchema(plugin: ForgePlugin): Promise<void> {
   const { app, settings } = plugin;
   const paths = getVaultPaths(settings);
 
@@ -23,7 +23,7 @@ export async function runValidateSchema(plugin: VaultForgePlugin): Promise<void>
 
   if (!(file instanceof TFile)) {
     new Notice(
-      `Vault Forge: schema.md not found at ${paths.schemaMd}`,
+      `Forge: schema.md not found at ${paths.schemaMd}`,
       6000
     );
     return;
@@ -33,7 +33,7 @@ export async function runValidateSchema(plugin: VaultForgePlugin): Promise<void>
   try {
     raw = await app.vault.read(file);
   } catch (e) {
-    new Notice("Vault Forge: Could not read schema.md.", 5000);
+    new Notice("Forge: Could not read schema.md.", 5000);
     return;
   }
 
@@ -50,13 +50,13 @@ export async function runValidateSchema(plugin: VaultForgePlugin): Promise<void>
 // ── Modal ─────────────────────────────────────────────────────────────────────
 
 class ValidateSchemaModal extends Modal {
-  private plugin: VaultForgePlugin;
+  private plugin: ForgePlugin;
   private issues: SchemaValidationIssue[];
   private schemaPath: string;
 
   constructor(
     app: App,
-    plugin: VaultForgePlugin,
+    plugin: ForgePlugin,
     issues: SchemaValidationIssue[],
     schemaPath: string
   ) {
@@ -80,19 +80,19 @@ class ValidateSchemaModal extends Modal {
 
     contentEl.createEl("p", {
       text: `Schema: ${this.schemaPath}`,
-      cls: "vault-forge-schema-path",
+      cls: "forge-schema-path",
     });
 
     if (passed && warnings.length === 0) {
       contentEl.createEl("p", {
         text: "schema.md is well-formed. All required sections are present and parseable.",
-        cls: "vault-forge-success-msg",
+        cls: "forge-success-msg",
       });
     }
 
     if (errors.length > 0) {
       contentEl.createEl("h3", { text: "Errors" });
-      const list = contentEl.createEl("ul", { cls: "vault-forge-lint-list" });
+      const list = contentEl.createEl("ul", { cls: "forge-lint-list" });
       for (const issue of errors) {
         list.createEl("li", { text: issue.message });
       }
@@ -100,14 +100,14 @@ class ValidateSchemaModal extends Modal {
 
     if (warnings.length > 0) {
       contentEl.createEl("h3", { text: "Warnings" });
-      const list = contentEl.createEl("ul", { cls: "vault-forge-lint-list" });
+      const list = contentEl.createEl("ul", { cls: "forge-lint-list" });
       for (const issue of warnings) {
         list.createEl("li", { text: issue.message });
       }
     }
 
     // Buttons
-    const buttonRow = contentEl.createDiv("vault-forge-button-row");
+    const buttonRow = contentEl.createDiv("forge-button-row");
 
     const openBtn = buttonRow.createEl("button", {
       text: "Open schema.md",

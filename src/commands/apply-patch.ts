@@ -10,7 +10,7 @@
 //   6. If settings.patchAutoLintAfterApply: trigger lint (Milestone 4)
 
 import { App, Modal, Notice, Setting, TFile, normalizePath } from "obsidian";
-import type VaultForgePlugin from "../main";
+import type ForgePlugin from "../main";
 import { getVaultPaths } from "../vault-paths";
 import {
   loadPatchFile,
@@ -28,7 +28,7 @@ import { ensureFolder, todayString } from "../utils/files";
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 
-export async function runApplyPatch(plugin: VaultForgePlugin): Promise<void> {
+export async function runApplyPatch(plugin: ForgePlugin): Promise<void> {
   const { app, settings } = plugin;
   const paths = getVaultPaths(settings);
 
@@ -41,26 +41,26 @@ export async function runApplyPatch(plugin: VaultForgePlugin): Promise<void> {
 
     if (created) {
       new Notice(
-        `Vault Forge: Created patch note at ${paths.patchFile}. Add operations, then run Apply Vault Patch again.`,
+        `Forge: Created patch note at ${paths.patchFile}. Add operations, then run Apply Vault Patch again.`,
         7000
       );
       return;
     }
 
     new Notice(
-      `Vault Forge: Patch file not found or has no YAML block at ${paths.patchFile}`,
+      `Forge: Patch file not found or has no YAML block at ${paths.patchFile}`,
       7000
     );
     return;
   }
 
   if (patchFile.operations.length === 0) {
-    new Notice("Vault Forge: Patch file has no operations.", 4000);
+    new Notice("Forge: Patch file has no operations.", 4000);
     return;
   }
 
   // Dry run
-  new Notice("Vault Forge: Running dry pass…", 2000);
+  new Notice("Forge: Running dry pass…", 2000);
   const dryResult = await applyPatch(
     app,
     settings,
@@ -72,7 +72,7 @@ export async function runApplyPatch(plugin: VaultForgePlugin): Promise<void> {
   // Show modal
   new PatchConfirmModal(app, plugin, patchFile.meta.description ?? "", dryResult, async () => {
     // Apply
-    new Notice("Vault Forge: Applying patch…", 2000);
+    new Notice("Forge: Applying patch…", 2000);
     const applyResult = await applyPatch(
       app,
       settings,
@@ -91,12 +91,12 @@ export async function runApplyPatch(plugin: VaultForgePlugin): Promise<void> {
 
     if (errors > 0) {
       new Notice(
-        `Vault Forge: Patch applied with ${errors} error(s). Changed: ${changed}. See report.`,
+        `Forge: Patch applied with ${errors} error(s). Changed: ${changed}. See report.`,
         7000
       );
     } else {
       new Notice(
-        `Vault Forge: Patch applied. ${changed} file(s) changed.`,
+        `Forge: Patch applied. ${changed} file(s) changed.`,
         5000
       );
     }
@@ -135,7 +135,7 @@ async function createPatchTemplateIfMissing(
     "type: procedure",
     "status: draft",
     "tags:",
-    "  - tool/vault-forge",
+    "  - tool/forge",
     `created: ${today}`,
     `updated: ${today}`,
     "ai_private: false",
@@ -144,7 +144,7 @@ async function createPatchTemplateIfMissing(
     "",
     "# Vault Patch",
     "",
-    "Patch file for Vault Forge.",
+    "Patch file for Forge.",
     "",
     "## Patch",
     "",
@@ -164,14 +164,14 @@ async function createPatchTemplateIfMissing(
 // ── Modal ─────────────────────────────────────────────────────────────────────
 
 class PatchConfirmModal extends Modal {
-  private plugin: VaultForgePlugin;
+  private plugin: ForgePlugin;
   private description: string;
   private dryResult: PatchRunResult;
   private onConfirm: () => Promise<void>;
 
   constructor(
     app: App,
-    plugin: VaultForgePlugin,
+    plugin: ForgePlugin,
     description: string,
     dryResult: PatchRunResult,
     onConfirm: () => Promise<void>
@@ -196,33 +196,33 @@ class PatchConfirmModal extends Modal {
     if (this.description) {
       contentEl.createEl("p", {
         text: this.description,
-        cls: "vault-forge-patch-description",
+        cls: "forge-patch-description",
       });
     }
 
     // Summary counts
-    const summary = contentEl.createDiv("vault-forge-patch-summary");
+    const summary = contentEl.createDiv("forge-patch-summary");
 
-    const countEl = summary.createDiv("vault-forge-patch-counts");
+    const countEl = summary.createDiv("forge-patch-counts");
     countEl.createSpan({
       text: `${changed.length} changes`,
-      cls: changed.length > 0 ? "vault-forge-count-changed" : "vault-forge-count-zero",
+      cls: changed.length > 0 ? "forge-count-changed" : "forge-count-zero",
     });
     countEl.createSpan({ text: "  |  " });
     countEl.createSpan({
       text: `${skipped.length} skipped`,
-      cls: "vault-forge-count-skipped",
+      cls: "forge-count-skipped",
     });
     countEl.createSpan({ text: "  |  " });
     countEl.createSpan({
       text: `${errors.length} errors`,
-      cls: errors.length > 0 ? "vault-forge-count-error" : "vault-forge-count-zero",
+      cls: errors.length > 0 ? "forge-count-error" : "forge-count-zero",
     });
 
     // Errors section — shown prominently
     if (errors.length > 0) {
       contentEl.createEl("h3", { text: "Errors" });
-      const errorList = contentEl.createEl("ul", { cls: "vault-forge-error-list" });
+      const errorList = contentEl.createEl("ul", { cls: "forge-error-list" });
       for (const r of errors.slice(0, 10)) {
         errorList.createEl("li", { text: `[${r.op}] ${r.file} — ${r.detail}` });
       }
@@ -231,21 +231,21 @@ class PatchConfirmModal extends Modal {
       }
       contentEl.createEl("p", {
         text: "Errors will not be applied. You can still proceed with the successful operations.",
-        cls: "vault-forge-error-note",
+        cls: "forge-error-note",
       });
     }
 
     // Changes preview
     if (changed.length > 0) {
       contentEl.createEl("h3", { text: "Changes" });
-      const changeList = contentEl.createEl("ul", { cls: "vault-forge-change-list" });
+      const changeList = contentEl.createEl("ul", { cls: "forge-change-list" });
       for (const r of changed.slice(0, 20)) {
         changeList.createEl("li", { text: `${r.file} — ${r.detail}` });
       }
       if (changed.length > 20) {
         changeList.createEl("li", {
           text: `…and ${changed.length - 20} more`,
-          cls: "vault-forge-more",
+          cls: "forge-more",
         });
       }
     }
@@ -253,20 +253,20 @@ class PatchConfirmModal extends Modal {
     if (changed.length === 0 && errors.length === 0) {
       contentEl.createEl("p", {
         text: "No changes needed — vault already matches the patch.",
-        cls: "vault-forge-no-changes",
+        cls: "forge-no-changes",
       });
     }
 
     // Backup notice
     if (this.plugin.settings.patchBackupEnabled && changed.length > 0) {
       contentEl.createEl("p", {
-        text: `Backups will be written to System/VaultForge/Patches/Backups/`,
-        cls: "vault-forge-backup-notice",
+        text: `Backups will be written to ${this.plugin.settings.patchBackupFolder || this.plugin.settings.patchesFolder + '/Backups'}/`,
+        cls: "forge-backup-notice",
       });
     }
 
     // Buttons
-    const buttonRow = contentEl.createDiv("vault-forge-button-row");
+    const buttonRow = contentEl.createDiv("forge-button-row");
 
     if (changed.length > 0) {
       const applyBtn = buttonRow.createEl("button", {

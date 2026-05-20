@@ -10,7 +10,7 @@
 // The plugin is the consumer; it reads the source.
 
 import { App, TFile, parseYaml } from "obsidian";
-import type { VaultForgeSettings } from "../settings";
+import type { ForgeSettings } from "../settings";
 import { getVaultPaths } from "../vault-paths";
 
 // ── Schema types ─────────────────────────────────────────────────────────────
@@ -72,13 +72,13 @@ export interface VaultSchema {
  */
 export async function loadSchema(
   app: App,
-  settings: VaultForgeSettings
+  settings: ForgeSettings
 ): Promise<VaultSchema | null> {
   const paths = getVaultPaths(settings);
   const file = app.vault.getAbstractFileByPath(paths.schemaMd);
 
   if (!(file instanceof TFile)) {
-    console.warn(`[VaultForge] schema.md not found at: ${paths.schemaMd}`);
+    console.warn(`[Forge] schema.md not found at: ${paths.schemaMd}`);
     return null;
   }
 
@@ -86,7 +86,7 @@ export async function loadSchema(
   try {
     raw = await app.vault.read(file);
   } catch (e) {
-    console.warn(`[VaultForge] Could not read schema.md:`, e);
+    console.warn(`[Forge] Could not read schema.md:`, e);
     return null;
   }
 
@@ -101,7 +101,7 @@ export function parseSchemaNote(raw: string): VaultSchema | null {
   // Split frontmatter from body
   const fmMatch = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
   if (!fmMatch) {
-    console.warn("[VaultForge] schema.md is missing valid YAML frontmatter");
+    console.warn("[Forge] schema.md is missing valid YAML frontmatter");
     return null;
   }
 
@@ -124,7 +124,7 @@ export function parseSchemaNote(raw: string): VaultSchema | null {
   // Extract the fenced YAML contract block
   const contractYaml = extractContractBlock(bodyText);
   if (!contractYaml) {
-    console.warn("[VaultForge] Could not find schema contract YAML block in schema.md");
+    console.warn("[Forge] Could not find schema contract YAML block in schema.md");
     return null;
   }
 
@@ -133,12 +133,12 @@ export function parseSchemaNote(raw: string): VaultSchema | null {
   try {
     contract = parseYaml(contractYaml) as Record<string, unknown>;
   } catch (e) {
-    console.warn("[VaultForge] Could not parse schema contract YAML:", e);
+    console.warn("[Forge] Could not parse schema contract YAML:", e);
     return null;
   }
 
   if (!contract) {
-    console.warn("[VaultForge] Schema contract block is empty");
+    console.warn("[Forge] Schema contract block is empty");
     return null;
   }
 

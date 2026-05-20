@@ -13,7 +13,7 @@
 // Runs a dry pass first, shows confirm modal, then applies.
 
 import { App, Modal, Notice, TFile, TFolder } from "obsidian";
-import type VaultForgePlugin from "../main";
+import type ForgePlugin from "../main";
 import { getVaultPaths } from "../vault-paths";
 import { getMarkdownFiles, todayString } from "../utils/files";
 
@@ -30,16 +30,16 @@ interface MaintenanceResult {
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 
-export async function runVaultMaintenance(plugin: VaultForgePlugin): Promise<void> {
+export async function runVaultMaintenance(plugin: ForgePlugin): Promise<void> {
   const { app, settings } = plugin;
 
-  new Notice("Vault Forge: Running maintenance dry pass…", 2000);
+  new Notice("Forge: Running maintenance dry pass…", 2000);
 
   const dryResults = await runAllTasks(app, settings, true);
   const actions = dryResults.filter((r) => r.status === "removed" || r.status === "trimmed");
 
   if (actions.length === 0) {
-    new Notice("Vault Forge: Nothing to clean up — vault is within retention policy.", 5000);
+    new Notice("Forge: Nothing to clean up — vault is within retention policy.", 5000);
     return;
   }
 
@@ -49,9 +49,9 @@ export async function runVaultMaintenance(plugin: VaultForgePlugin): Promise<voi
     const errors  = applyResults.filter((r) => r.status === "error").length;
 
     if (errors > 0) {
-      new Notice(`Vault Forge: Maintenance complete. ${applied} action(s), ${errors} error(s).`, 6000);
+      new Notice(`Forge: Maintenance complete. ${applied} action(s), ${errors} error(s).`, 6000);
     } else {
-      new Notice(`Vault Forge: Maintenance complete. ${applied} item(s) cleaned up.`, 5000);
+      new Notice(`Forge: Maintenance complete. ${applied} item(s) cleaned up.`, 5000);
     }
   }).open();
 }
@@ -60,7 +60,7 @@ export async function runVaultMaintenance(plugin: VaultForgePlugin): Promise<voi
 
 async function runAllTasks(
   app: App,
-  settings: VaultForgePlugin["settings"],
+  settings: ForgePlugin["settings"],
   dryRun: boolean
 ): Promise<MaintenanceResult[]> {
   const results: MaintenanceResult[] = [];
@@ -74,7 +74,7 @@ async function runAllTasks(
 
 async function trimLintHistory(
   app: App,
-  settings: VaultForgePlugin["settings"],
+  settings: ForgePlugin["settings"],
   dryRun: boolean
 ): Promise<MaintenanceResult[]> {
   const paths = getVaultPaths(settings);
@@ -121,7 +121,7 @@ async function trimLintHistory(
 
 async function trimLintRunNotes(
   app: App,
-  settings: VaultForgePlugin["settings"],
+  settings: ForgePlugin["settings"],
   dryRun: boolean
 ): Promise<MaintenanceResult[]> {
   const paths = getVaultPaths(settings);
@@ -149,7 +149,7 @@ async function trimLintRunNotes(
 
 async function trimPatchReportNotes(
   app: App,
-  settings: VaultForgePlugin["settings"],
+  settings: ForgePlugin["settings"],
   dryRun: boolean
 ): Promise<MaintenanceResult[]> {
   const paths = getVaultPaths(settings);
@@ -178,7 +178,7 @@ async function trimPatchReportNotes(
 
 async function cleanPatchBackups(
   app: App,
-  settings: VaultForgePlugin["settings"],
+  settings: ForgePlugin["settings"],
   dryRun: boolean
 ): Promise<MaintenanceResult[]> {
   const paths = getVaultPaths(settings);
@@ -216,7 +216,7 @@ async function cleanPatchBackups(
 
 async function cleanInbox(
   app: App,
-  settings: VaultForgePlugin["settings"],
+  settings: ForgePlugin["settings"],
   dryRun: boolean
 ): Promise<MaintenanceResult[]> {
   const paths = getVaultPaths(settings);
@@ -252,13 +252,13 @@ async function cleanInbox(
 // ── Modal ─────────────────────────────────────────────────────────────────────
 
 class MaintenanceConfirmModal extends Modal {
-  private plugin: VaultForgePlugin;
+  private plugin: ForgePlugin;
   private results: MaintenanceResult[];
   private onConfirm: () => Promise<void>;
 
   constructor(
     app: App,
-    plugin: VaultForgePlugin,
+    plugin: ForgePlugin,
     results: MaintenanceResult[],
     onConfirm: () => Promise<void>
   ) {
@@ -279,8 +279,8 @@ class MaintenanceConfirmModal extends Modal {
     contentEl.createEl("h2", { text: "Vault Maintenance" });
 
     // Policy summary
-    const policy = contentEl.createDiv("vault-forge-maintenance-policy");
-    policy.createEl("p", { text: `Retention policy:`, cls: "vault-forge-policy-label" });
+    const policy = contentEl.createDiv("forge-maintenance-policy");
+    policy.createEl("p", { text: `Retention policy:`, cls: "forge-policy-label" });
     const policyList = policy.createEl("ul");
     policyList.createEl("li", { text: `Lint history: ${settings.lintHistoryRetentionDays} days / ${settings.lintHistoryMaxEntries} entries max` });
     policyList.createEl("li", { text: `Lint run notes: ${settings.lintRunRetentionCount} notes max` });
@@ -290,22 +290,22 @@ class MaintenanceConfirmModal extends Modal {
 
     if (errors.length > 0) {
       contentEl.createEl("h3", { text: "Errors" });
-      const list = contentEl.createEl("ul", { cls: "vault-forge-error-list" });
+      const list = contentEl.createEl("ul", { cls: "forge-error-list" });
       for (const r of errors) {
         list.createEl("li", { text: `[${r.task}] ${r.target} — ${r.detail}` });
       }
     }
 
     contentEl.createEl("h3", { text: `${actions.length} item(s) to clean up` });
-    const list = contentEl.createEl("ul", { cls: "vault-forge-change-list" });
+    const list = contentEl.createEl("ul", { cls: "forge-change-list" });
     for (const r of actions.slice(0, 20)) {
       list.createEl("li", { text: `[${r.task}] ${r.target} — ${r.detail}` });
     }
     if (actions.length > 20) {
-      list.createEl("li", { text: `…and ${actions.length - 20} more`, cls: "vault-forge-more" });
+      list.createEl("li", { text: `…and ${actions.length - 20} more`, cls: "forge-more" });
     }
 
-    const buttonRow = contentEl.createDiv("vault-forge-button-row");
+    const buttonRow = contentEl.createDiv("forge-button-row");
 
     const applyBtn = buttonRow.createEl("button", { text: "Apply", cls: "mod-cta" });
     applyBtn.addEventListener("click", async () => {

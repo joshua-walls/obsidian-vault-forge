@@ -1,9 +1,9 @@
 // src/main.ts
-// Vault Forge — Obsidian plugin entry point.
+// Forge — Obsidian plugin entry point.
 
 import { Plugin, Notice } from "obsidian";
-import { DEFAULT_SETTINGS, VaultForgeSettings } from "./settings";
-import { VaultForgeSettingsTab } from "./settings-tab";
+import { DEFAULT_SETTINGS, ForgeSettings } from "./settings";
+import { ForgeSettingsTab } from "./settings-tab";
 import { SchemaCache } from "./schema-cache";
 import { runApplyPatch } from "./commands/apply-patch";
 import { runVaultLint } from "./commands/run-lint";
@@ -14,9 +14,11 @@ import { runVaultRepair } from "./commands/repair";
 import { runRestorePatch } from "./commands/restore-patch";
 import { runRenameDataviewFolder } from "./commands/utilities";
 import { installVaultForgeDocumentation } from "./docs";
+import { runExportOverview } from "./commands/export-overview";
+import { runExportOntology } from "./commands/export-ontology";
 
-export default class VaultForgePlugin extends Plugin {
-  settings: VaultForgeSettings;
+export default class ForgePlugin extends Plugin {
+  settings: ForgeSettings;
   schemaCache: SchemaCache;
 
   async onload(): Promise<void> {
@@ -31,8 +33,8 @@ export default class VaultForgePlugin extends Plugin {
       name: "Apply Vault Patch",
       callback: () => {
         runApplyPatch(this).catch((e: Error) => {
-          new Notice(`Vault Forge: ${e?.message ?? "Unexpected error"}`, 6000);
-          console.error("[VaultForge] apply-vault-patch error:", e);
+          new Notice(`Forge: ${e?.message ?? "Unexpected error"}`, 6000);
+          console.error("[Forge] apply-vault-patch error:", e);
         });
       },
     });
@@ -42,8 +44,8 @@ export default class VaultForgePlugin extends Plugin {
       name: "Run Vault Lint",
       callback: () => {
         runVaultLint(this).catch((e: Error) => {
-          new Notice(`Vault Forge: ${e?.message ?? "Unexpected error"}`, 6000);
-          console.error("[VaultForge] run-vault-lint error:", e);
+          new Notice(`Forge: ${e?.message ?? "Unexpected error"}`, 6000);
+          console.error("[Forge] run-vault-lint error:", e);
         });
       },
     });
@@ -53,8 +55,8 @@ export default class VaultForgePlugin extends Plugin {
       name: "Validate Schema",
       callback: () => {
         runValidateSchema(this).catch((e: Error) => {
-          new Notice(`Vault Forge: ${e?.message ?? "Unexpected error"}`, 6000);
-          console.error("[VaultForge] validate-schema error:", e);
+          new Notice(`Forge: ${e?.message ?? "Unexpected error"}`, 6000);
+          console.error("[Forge] validate-schema error:", e);
         });
       },
     });
@@ -64,8 +66,8 @@ export default class VaultForgePlugin extends Plugin {
       name: "Normalize Tags",
       callback: () => {
         runNormalizeTags(this).catch((e: Error) => {
-          new Notice(`Vault Forge: ${e?.message ?? "Unexpected error"}`, 6000);
-          console.error("[VaultForge] normalize-tags error:", e);
+          new Notice(`Forge: ${e?.message ?? "Unexpected error"}`, 6000);
+          console.error("[Forge] normalize-tags error:", e);
         });
       },
     });
@@ -75,8 +77,8 @@ export default class VaultForgePlugin extends Plugin {
       name: "Normalize Frontmatter",
       callback: () => {
         runNormalizeFrontmatter(this).catch((e: Error) => {
-          new Notice(`Vault Forge: ${e?.message ?? "Unexpected error"}`, 6000);
-          console.error("[VaultForge] normalize-frontmatter error:", e);
+          new Notice(`Forge: ${e?.message ?? "Unexpected error"}`, 6000);
+          console.error("[Forge] normalize-frontmatter error:", e);
         });
       },
     });
@@ -86,8 +88,8 @@ export default class VaultForgePlugin extends Plugin {
       name: "Vault Maintenance",
       callback: () => {
         runVaultMaintenance(this).catch((e: Error) => {
-          new Notice(`Vault Forge: ${e?.message ?? "Unexpected error"}`, 6000);
-          console.error("[VaultForge] vault-maintenance error:", e);
+          new Notice(`Forge: ${e?.message ?? "Unexpected error"}`, 6000);
+          console.error("[Forge] vault-maintenance error:", e);
         });
       },
     });
@@ -97,8 +99,8 @@ export default class VaultForgePlugin extends Plugin {
       name: "Vault Repair",
       callback: () => {
         runVaultRepair(this).catch((e: Error) => {
-          new Notice(`Vault Forge: ${e?.message ?? "Unexpected error"}`, 6000);
-          console.error("[VaultForge] vault-repair error:", e);
+          new Notice(`Forge: ${e?.message ?? "Unexpected error"}`, 6000);
+          console.error("[Forge] vault-repair error:", e);
         });
       },
     });
@@ -108,8 +110,8 @@ export default class VaultForgePlugin extends Plugin {
       name: "Restore Patch Run",
       callback: () => {
         runRestorePatch(this).catch((e: Error) => {
-          new Notice(`Vault Forge: ${e?.message ?? "Unexpected error"}`, 6000);
-          console.error("[VaultForge] restore-patch-run error:", e);
+          new Notice(`Forge: ${e?.message ?? "Unexpected error"}`, 6000);
+          console.error("[Forge] restore-patch-run error:", e);
         });
       },
     });
@@ -119,8 +121,8 @@ export default class VaultForgePlugin extends Plugin {
       name: "Rename Dataview Folder",
       callback: () => {
         runRenameDataviewFolder(this).catch((e: Error) => {
-          new Notice(`Vault Forge: ${e?.message ?? "Unexpected error"}`, 6000);
-          console.error("[VaultForge] rename-dataview-folder error:", e);
+          new Notice(`Forge: ${e?.message ?? "Unexpected error"}`, 6000);
+          console.error("[Forge] rename-dataview-folder error:", e);
         });
       },
     });
@@ -130,13 +132,36 @@ export default class VaultForgePlugin extends Plugin {
       name: "Install Documentation",
       callback: () => {
         installVaultForgeDocumentation(this.app, this.settings).catch((e: Error) => {
-          new Notice(`Vault Forge: ${e?.message ?? "Unexpected error"}`, 6000);
-          console.error("[VaultForge] install-documentation error:", e);
+          new Notice(`Forge: ${e?.message ?? "Unexpected error"}`, 6000);
+          console.error("[Forge] install-documentation error:", e);
         });
       },
     });
 
-    this.addSettingTab(new VaultForgeSettingsTab(this.app, this));
+
+    this.addCommand({
+      id: "export-vault-overview",
+      name: "Export Vault Overview",
+      callback: () => {
+        runExportOverview(this).catch((e: Error) => {
+          new Notice(`Forge: ${e?.message ?? "Unexpected error"}`, 6000);
+          console.error("[Forge] export-vault-overview error:", e);
+        });
+      },
+    });
+
+    this.addCommand({
+      id: "export-ontology-index",
+      name: "Export Ontology Index",
+      callback: () => {
+        runExportOntology(this).catch((e: Error) => {
+          new Notice(`Forge: ${e?.message ?? "Unexpected error"}`, 6000);
+          console.error("[Forge] export-ontology-index error:", e);
+        });
+      },
+    });
+
+        this.addSettingTab(new ForgeSettingsTab(this.app, this));
 
     // Defer all vault file access until the workspace layout is ready.
     // On iOS, the vault adapter is not fully mounted when onload() fires
@@ -146,16 +171,16 @@ export default class VaultForgePlugin extends Plugin {
       // Warm schema cache — retry once after 3s if vault not ready yet (iOS sync delay)
       this.schemaCache.refresh().catch(() => {
         setTimeout(() => this.schemaCache.refresh().catch((e) => {
-          console.warn("[VaultForge] Schema cache retry failed:", e);
+          console.warn("[Forge] Schema cache retry failed:", e);
         }), 3000);
       });
     });
 
-    console.log("Vault Forge loaded");
+    console.log("Forge loaded");
   }
 
   onunload(): void {
-    console.log("Vault Forge unloaded");
+    console.log("Forge unloaded");
   }
 
   async loadSettings(): Promise<void> {

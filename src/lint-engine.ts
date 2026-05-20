@@ -1,5 +1,5 @@
 // src/lint-engine.ts
-// Vault Forge lint engine.
+// Forge lint engine.
 //
 // Port of Invoke-VaultLint.ps1 — validates all vault markdown files
 // against schema.md rules. Read-only — never modifies files.
@@ -16,18 +16,18 @@
 //   required_when          — field required when another field has a value
 //   forbidden_when         — field forbidden when another field has a value
 //   tag_consistency        — field value should have matching tag
-//   invalid_pattern_ref    — patterns field references unknown pattern
+//   invalid_shape_ref    — patterns field references unknown pattern
 //   inline_is_schema_field — inline metadata key matches a schema field
 //   inline_fuzzy_schema    — inline key looks like a typo of a schema field
 //   inline_fuzzy_inline    — inline key looks like a typo of a known inline field
 //   inline_undocumented    — inline key not in schema inline_fields list
 
 import { App, TFile } from "obsidian";
-import type { VaultForgeSettings } from "./settings";
+import type { ForgeSettings } from "./settings";
 import { getVaultPaths } from "./vault-paths";
 import { VaultSchema, SchemaField, loadSchema } from "./utils/schema";
 import { getTags } from "./utils/tags";
-import { buildExemptList, getMarkdownFiles, isExempt, safeTimestamp, todayString } from "./utils/files";
+import { buildExemptList, localTimestamp, getMarkdownFiles, isExempt, safeTimestamp, todayString } from "./utils/files";
 import { readNote, isFieldPresent, getFmString } from "./utils/frontmatter";
 import { ensureFolder } from "./utils/files";
 
@@ -65,13 +65,13 @@ export interface LintRunResult {
  */
 export async function runLint(
   app: App,
-  settings: VaultForgeSettings
+  settings: ForgeSettings
 ): Promise<LintRunResult | null> {
   const schema = await loadSchema(app, settings);
   if (!schema) return null;
 
   const paths = getVaultPaths(settings);
-  const exemptPaths = buildExemptList(schema.exempt_paths, paths.vaultForge);
+  const exemptPaths = buildExemptList(schema.exempt_paths, paths.forge);
 
 
   const allFiles = getMarkdownFiles(app).filter(
@@ -79,18 +79,18 @@ export async function runLint(
   );
 
   // Load valid pattern names for pattern field validation
-  const validPatterns = getValidPatternNames(app, paths.patterns);
+  const validShapes = getValidShapeNames(app, paths.shapes);
 
   const allResults: LintResult[] = [];
 
   for (const file of allFiles) {
-    const fileResults = await lintFile(app, file, schema, validPatterns);
+    const fileResults = await lintFile(app, file, schema, validShapes);
     allResults.push(...fileResults);
   }
 
   const envelope: LintRunEnvelope = {
     vault_path: (app.vault.adapter as any).basePath ?? "",
-    timestamp: new Date().toISOString().substring(0, 19),
+    timestamp: localTimestamp(),
     schema_version: schema.meta.version,
     notes_scanned: allFiles.length,
   };
@@ -110,7 +110,7 @@ async function lintFile(
   app: App,
   file: TFile,
   schema: VaultSchema,
-  validPatterns: string[]
+  validShapes: string[]
 ): Promise<LintResult[]> {
   const note = await readNote(app, file);
   const results: LintResult[] = [];
@@ -138,7 +138,7 @@ async function lintFile(
   results.push(...testEnumFields(file.path, fm, optFields));
   results.push(...testDateFields(file.path, fm, optFields));
   results.push(...testConditionalRules(file.path, fm, optFields));
-  results.push(...testPatternFieldValues(file.path, fm, optFields, validPatterns));
+  results.push(...testPatternFieldValues(file.path, fm, optFields, validShapes));
 
   // Tag namespace rules
   results.push(...testTagNamespaces(file.path, fm, schema));
@@ -344,16 +344,16 @@ function testPatternFieldValues(
   path: string,
   fm: Record<string, unknown>,
   fields: SchemaField[],
-  validPatterns: string[]
+  validShapes: string[]
 ): LintResult[] {
   const results: LintResult[] = [];
-  const patternField = fields.find((f) => f.name === "patterns");
+  const patternField = fields.find((f) => f.name === "shapes");
   if (!patternField) return results;
-  if (!isFieldPresent(fm, "patterns")) return results;
+  if (!isFieldPresent(fm, "shapes")) return results;
 
-  const raw = fm["patterns"];
+  const raw = fm["shapes"];
   const list = Array.isArray(raw) ? raw : [raw];
-  const validSet = new Set(validPatterns.map((p) => p.toLowerCase()));
+  const validSet = new Set(validShapes.map((p) => p.toLowerCase()));
 
   for (const item of list) {
     if (item === null || item === undefined) continue;
@@ -361,8 +361,8 @@ function testPatternFieldValues(
     if (!val) continue;
 
     if (!validSet.has(val.toLowerCase())) {
-      results.push(newResult(path, patternField.severity, "invalid_pattern_ref",
-        `Field 'patterns' contains '${val}', which is not a valid pattern in System/Patterns/`));
+      results.push(newResult(path, patternField.severity, "invalid_shape_ref",
+        `Field 'shapes' contains '${val}', which is not a valid pattern in System/Shapes/`));
     }
   }
 
@@ -512,7 +512,7 @@ function newResult(
   return { file, severity, rule, message };
 }
 
-function getValidPatternNames(app: App, patternsPath: string): string[] {
+function getValidShapeNames(app: App, patternsPath: string): string[] {
   const folder = app.vault.getAbstractFileByPath(patternsPath);
   if (!folder) return [];
 

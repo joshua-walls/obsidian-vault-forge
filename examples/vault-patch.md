@@ -31,4 +31,4 @@ operations:
 
 # Notes
 
-Vault Forge reads only the fenced YAML block for operations. The rest of this note is for humans.
+Forge reads only the fenced YAML block for operations. The rest of this note is for humans.

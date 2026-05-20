@@ -1,36 +1,42 @@
 // src/settings.ts
-// Vault Forge plugin settings.
+// Forge plugin settings.
 //
-// Stored in .obsidian/plugins/vault-forge/data.json via Obsidian's
+// Stored in .obsidian/plugins/forge/data.json via Obsidian's
 // loadData() / saveData() API. Never stored in vault notes.
 //
 
-export interface VaultForgeSettings {
+export type StaleReviewCycle = "daily" | "weekly" | "monthly" | "quarterly" | "custom";
+
+export interface ForgeSettings {
   // ── System paths ──────────────────────────────────────────────────
   // All paths are relative to vault root.
   systemFolder: string;        // System/
-  vaultForgeFolder: string;    // System/VaultForge/
+  forgeFolder: string;    // System/Forge/
+
+  // ── Lint paths + settings ─────────────────────────────────────────
   schemaNoteFolder: string;    // System/Registry/
   schemaNoteFile: string;      // schema.md
-  exportsFolder: string;       // System/Exports/
-  patchesFolder: string;       // System/VaultForge/Patches/
   lintRunsFolder: string;      // System/Exports/LintReports/
-  inboxFolder: string;         // System/Inbox/
-  patternsFolder: string;      // System/Patterns/
+  lintStrictMode: boolean;
+  lintRunRetentionCount: number;
+  lintFileLinks: boolean;
+
+  // ── Stale review (under Lint tab) ────────────────────────────────
+  staleReviewEnabled: boolean;
+  staleReviewCycleField: string;   // frontmatter field containing the cycle value
+  staleReviewUpdatedField: string; // frontmatter field containing last-updated date
+  staleReviewFilterField: string;  // which schema field to use for in-scope filtering
+  staleReviewStatuses: string[];   // valid values of that field to include
 
   // ── Patch settings ────────────────────────────────────────────────
-  patchBackupEnabled: boolean;        // back up files before modifying
-                                      // backups go to System/VaultForge/Patches/Backups/
-  patchGenerateManifest: boolean;     // write a restore manifest alongside backups
-                                      // manifest goes to System/VaultForge/Patches/Reports/
-  patchDefaultFile: string;           // System/VaultForge/Patches/vault-patch.md
-  patchAutoLintAfterApply: boolean;   // run lint after patch applies
+  patchesFolder: string;           // System/Forge/Patches/
+  inboxFolder: string;             // System/Inbox/
+  patchDefaultFile: string;        // System/Forge/Patches/vault-patch.md
+  patchBackupEnabled: boolean;
+  patchBackupFolder: string;       // selectable; default System/Forge/Patches/Backups/
+  patchGenerateManifest: boolean;
+  patchAutoLintAfterApply: boolean;
   patchAutoMaintenanceAfterApply: boolean;
-
-  // ── Lint settings ─────────────────────────────────────────────────
-  lintStrictMode: boolean;     // treat warnings as errors
-  lintRunRetentionCount: number; // how many lint run notes to keep
-  lintFileLinks: boolean;      // wrap file paths in [[wikilinks]] in lint run notes
 
   // ── Maintenance settings ──────────────────────────────────────────
   backupRetentionDays: number;
@@ -38,36 +44,78 @@ export interface VaultForgeSettings {
   lintHistoryRetentionDays: number;
   lintHistoryMaxEntries: number;
   patchReportRetentionCount: number;
+
+  // ── Export settings ───────────────────────────────────────────────
+  exportEnabled: boolean;
+  exportsFolder: string;               // System/Exports/
+  exportRelationshipHeading: string;   // e.g. "Related"  (without the # — script adds it)
+  exportFilterField: string;           // schema field to filter on, e.g. "type"
+  exportFilterValues: string[];        // selected values for that field, e.g. ["capability","method"]
+  exportPrivateEnabled: boolean;       // whether to treat a field as a private-note signal
+  exportPrivateField: string;          // frontmatter field that signals a private note
+  exportDomainField: string;           // frontmatter field to use as domain (blank = parent folder)
+  exportTypeField: string;             // frontmatter field to use as type (blank = 'type')
+  exportStatusField: string;           // frontmatter field to use as status (blank = 'status')
+  exportDashboardName: string;         // dashboard note filename (blank = 'vault-dashboard')
+  exportExcludeFolders: string[];      // folders to exclude from ontology export (any depth)
+
+  // ── Shapes settings ─────────────────────────────────────────────
+  shapesEnabled: boolean;
+  shapesFolder: string;              // System/Shapes/
 }
 
-export const DEFAULT_SETTINGS: VaultForgeSettings = {
+export const DEFAULT_SETTINGS: ForgeSettings = {
   // System paths
   systemFolder: "System",
-  vaultForgeFolder: "System/VaultForge",
-  schemaNoteFolder: "System/Registry",
-  schemaNoteFile: "schema.md",
-  exportsFolder: "System/Exports",
-  patchesFolder: "System/VaultForge/Patches",
-  lintRunsFolder: "System/Exports/LintReports",
-  inboxFolder: "System/Inbox",
-  patternsFolder: "System/Patterns",
-
-  // Patch
-  patchBackupEnabled: true,
-  patchGenerateManifest: true,
-  patchDefaultFile: "System/VaultForge/Patches/vault-patch.md",
-  patchAutoLintAfterApply: true,
-  patchAutoMaintenanceAfterApply: false,
+  forgeFolder: "System/Forge",
 
   // Lint
+  schemaNoteFolder: "System/Registry",
+  schemaNoteFile: "schema.md",
+  lintRunsFolder: "System/Exports/LintReports",
   lintStrictMode: false,
   lintRunRetentionCount: 20,
   lintFileLinks: false,
 
+  // Stale review
+  staleReviewEnabled: false,
+  staleReviewCycleField: "review_cycle",
+  staleReviewUpdatedField: "updated",
+  staleReviewFilterField: "status",
+  staleReviewStatuses: [],
+
+  // Patch
+  patchesFolder: "System/Forge/Patches",
+  inboxFolder: "System/Inbox",
+  patchDefaultFile: "System/Forge/Patches/vault-patch.md",
+  patchBackupEnabled: true,
+  patchBackupFolder: "System/Forge/Patches/Backups",
+  patchGenerateManifest: true,
+  patchAutoLintAfterApply: true,
+  patchAutoMaintenanceAfterApply: false,
+
   // Maintenance
   backupRetentionDays: 14,
-  inboxRetentionDays: 14,
+  inboxRetentionDays: 30,
   lintHistoryRetentionDays: 14,
   lintHistoryMaxEntries: 20,
   patchReportRetentionCount: 20,
+
+  // Export
+  exportEnabled: false,
+  exportsFolder: "System/Exports",
+  exportRelationshipHeading: "Related",
+  exportFilterField: "",
+  exportFilterValues: [],
+  exportPrivateEnabled: false,
+  exportPrivateField: "",
+  exportDomainField: "",
+  exportTypeField: "",
+  exportStatusField: "",
+  exportDashboardName: "",
+  exportExcludeFolders: [],
+
+  // Shapes
+  shapesEnabled: false,
+  shapesFolder: "System/Shapes",
 };

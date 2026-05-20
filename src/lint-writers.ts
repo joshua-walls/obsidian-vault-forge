@@ -11,7 +11,7 @@
 // is lighter weight. The JSON report is the machine-readable source of truth.
 
 import { App, TFile, normalizePath } from "obsidian";
-import type { VaultForgeSettings } from "./settings";
+import type { ForgeSettings } from "./settings";
 import { getVaultPaths } from "./vault-paths";
 import { ensureFolder, todayString } from "./utils/files";
 import type { LintRunResult } from "./lint-engine";
@@ -24,7 +24,7 @@ import type { LintRunResult } from "./lint-engine";
  */
 export async function writeLintReportJson(
   app: App,
-  settings: VaultForgeSettings,
+  settings: ForgeSettings,
   run: LintRunResult
 ): Promise<void> {
   const paths = getVaultPaths(settings);
@@ -63,7 +63,7 @@ export async function writeLintReportJson(
  */
 export async function appendLintHistory(
   app: App,
-  settings: VaultForgeSettings,
+  settings: ForgeSettings,
   run: LintRunResult
 ): Promise<void> {
   const paths = getVaultPaths(settings);
@@ -123,7 +123,7 @@ export async function appendLintHistory(
  */
 export async function writeLintRunNote(
   app: App,
-  settings: VaultForgeSettings,
+  settings: ForgeSettings,
   run: LintRunResult
 ): Promise<string> {
   const paths = getVaultPaths(settings);

@@ -10,7 +10,7 @@
 //   6. If errors and settings allow: offer to open Vault Repair (Milestone 7)
 
 import { App, Modal, Notice, normalizePath } from "obsidian";
-import type VaultForgePlugin from "../main";
+import type ForgePlugin from "../main";
 import { getVaultPaths } from "../vault-paths";
 import { runLint, LintRunResult } from "../lint-engine";
 import {
@@ -22,13 +22,13 @@ import { runVaultRepair } from "./repair";
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 
-export async function runVaultLint(plugin: VaultForgePlugin): Promise<LintRunResult | null> {
+export async function runVaultLint(plugin: ForgePlugin): Promise<LintRunResult | null> {
   const { app, settings } = plugin;
 
   const noteCount = app.vault.getMarkdownFiles().length;
   const estimatedSeconds = Math.max(3, Math.ceil(noteCount / 200));
   new Notice(
-    `Vault Forge: Running lint on ${noteCount} notes… (may take ~${estimatedSeconds}s on large vaults)`,
+    `Forge: Running lint on ${noteCount} notes… (may take ~${estimatedSeconds}s on large vaults)`,
     estimatedSeconds * 1000
   );
 
@@ -36,7 +36,7 @@ export async function runVaultLint(plugin: VaultForgePlugin): Promise<LintRunRes
 
   if (!result) {
     new Notice(
-      "Vault Forge: Could not load schema.md — lint aborted. Run Validate Schema to diagnose.",
+      "Forge: Could not load schema.md — lint aborted. Run Validate Schema to diagnose.",
       6000
     );
     return null;
@@ -135,13 +135,13 @@ function groupLintItems(items: Array<{ rule: string; message: string; file: stri
 // ── Modal ─────────────────────────────────────────────────────────────────────
 
 class LintResultsModal extends Modal {
-  private plugin: VaultForgePlugin;
+  private plugin: ForgePlugin;
   private result: LintRunResult;
   private runNotePath: string;
 
   constructor(
     app: App,
-    plugin: VaultForgePlugin,
+    plugin: ForgePlugin,
     result: LintRunResult,
     runNotePath: string
   ) {
@@ -166,7 +166,7 @@ class LintResultsModal extends Modal {
         : "✅ Vault Lint — Passed",
     });
 
-    const summaryEl = contentEl.createDiv("vault-forge-lint-summary");
+    const summaryEl = contentEl.createDiv("forge-lint-summary");
 
     summaryEl.createEl("div", {
       text: `${r.errors.length} errors`,
@@ -192,22 +192,22 @@ class LintResultsModal extends Modal {
       for (const group of groupLintItems(r.errors)) {
         contentEl.createEl("div", {
           text: `[${group.rule}]`,
-          cls: "vault-forge-lint-rule",
+          cls: "forge-lint-rule",
         });
 
         contentEl.createEl("div", {
           text: group.summary,
-          cls: "vault-forge-lint-message",
+          cls: "forge-lint-message",
         });
 
         for (const reason of group.reasons) {
           contentEl.createEl("h4", {
             text: reason.label,
-            cls: "vault-forge-lint-reason",
+            cls: "forge-lint-reason",
           });
 
           const list = contentEl.createEl("ul", {
-            cls: "vault-forge-lint-list",
+            cls: "forge-lint-list",
           });
 
           for (const file of reason.files) {
@@ -225,22 +225,22 @@ class LintResultsModal extends Modal {
       for (const group of groupLintItems(r.warnings)) {
         contentEl.createEl("div", {
           text: `[${group.rule}]`,
-          cls: "vault-forge-lint-rule",
+          cls: "forge-lint-rule",
         });
 
         contentEl.createEl("div", {
           text: group.summary,
-          cls: "vault-forge-lint-message",
+          cls: "forge-lint-message",
         });
 
         for (const reason of group.reasons) {
           contentEl.createEl("h4", {
             text: reason.label,
-            cls: "vault-forge-lint-reason",
+            cls: "forge-lint-reason",
           });
 
           const list = contentEl.createEl("ul", {
-            cls: "vault-forge-lint-list",
+            cls: "forge-lint-list",
           });
 
           for (const file of reason.files) {
@@ -258,22 +258,22 @@ class LintResultsModal extends Modal {
       for (const group of groupLintItems(r.infos)) {
         contentEl.createEl("div", {
           text: `[${group.rule}]`,
-          cls: "vault-forge-lint-rule",
+          cls: "forge-lint-rule",
         });
 
         contentEl.createEl("div", {
           text: group.summary,
-          cls: "vault-forge-lint-message",
+          cls: "forge-lint-message",
         });
 
         for (const reason of group.reasons) {
           contentEl.createEl("h4", {
             text: reason.label,
-            cls: "vault-forge-lint-reason",
+            cls: "forge-lint-reason",
           });
 
           const list = contentEl.createEl("ul", {
-            cls: "vault-forge-lint-list",
+            cls: "forge-lint-list",
           });
 
           for (const file of reason.files) {
@@ -286,7 +286,7 @@ class LintResultsModal extends Modal {
     }
 
     // Buttons
-    const buttonRow = contentEl.createDiv("vault-forge-button-row");
+    const buttonRow = contentEl.createDiv("forge-button-row");
 
     const viewBtn = buttonRow.createEl("button", {
       text: "View Lint Run Note",

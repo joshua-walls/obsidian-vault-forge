@@ -10,8 +10,8 @@ const prod = process.argv[2] === "production";
  * Dynamic doc folder plugin.
  *
  * Intercepts imports of the form:
- *   import docs from "vault-forge:docs";
- *   import examples from "vault-forge:examples";
+ *   import docs from "forge:docs";
+ *   import examples from "forge:examples";
  *
  * At build time, scans the corresponding folder for all .md files
  * and generates a virtual module that exports them as a Record<string, string>:
@@ -22,19 +22,19 @@ const prod = process.argv[2] === "production";
  */
 function docFolderPlugin() {
   return {
-    name: "vault-forge-docs",
+    name: "forge-docs",
     setup(build) {
       // Resolve virtual module names
-      build.onResolve({ filter: /^vault-forge:(docs|examples)$/ }, (args) => ({
+      build.onResolve({ filter: /^forge:(docs|examples)$/ }, (args) => ({
         path: args.path,
-        namespace: "vault-forge-docs",
+        namespace: "forge-docs",
       }));
 
       // Generate virtual module contents
       build.onLoad(
-        { filter: /^vault-forge:(docs|examples)$/, namespace: "vault-forge-docs" },
+        { filter: /^forge:(docs|examples)$/, namespace: "forge-docs" },
         (args) => {
-          const folderName = args.path.replace("vault-forge:", "");
+          const folderName = args.path.replace("forge:", "");
           const folderPath = path.resolve(process.cwd(), folderName);
 
           if (!fs.existsSync(folderPath)) {

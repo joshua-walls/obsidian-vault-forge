@@ -10,7 +10,7 @@
 // These are thin wrappers around js-yaml, the same library Obsidian uses internally.
 
 import { App, TFile, normalizePath, parseYaml, stringifyYaml } from "obsidian";
-import { ensureFolder } from "./files";
+import { ensureFolder, safeTimestamp } from "./files";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -34,7 +34,7 @@ const PREFERRED_FIELD_ORDER = [
   "kind",
   "domain",
   "status",
-  "patterns",
+  "shapes",
   "tags",
   "created",
   "updated",
@@ -65,7 +65,7 @@ export async function readNote(
   try {
     raw = await app.vault.read(file);
   } catch (e) {
-    console.warn(`[VaultForge] Could not read file: ${file.path}`, e);
+    console.warn(`[Forge] Could not read file: ${file.path}`, e);
     return null;
   }
 
@@ -100,7 +100,7 @@ export function parseNote(raw: string, file: TFile): VaultNote {
       frontmatter = parsed as Record<string, unknown>;
     }
   } catch (e) {
-    console.warn(`[VaultForge] Could not parse YAML in: ${file.path}`, e);
+    console.warn(`[Forge] Could not parse YAML in: ${file.path}`, e);
   }
 
   return {
@@ -146,11 +146,7 @@ export async function backupNote(
 ): Promise<string | null> {
   await ensureFolder(app, backupFolder);
 
-  const timestamp = new Date()
-    .toISOString()
-    .replace(/[:.]/g, "-")
-    .replace("T", "_")
-    .substring(0, 19);
+  const timestamp = safeTimestamp().replace(/[_]/g, "_").replace(/:/g, "-");
 
   // Flatten the file path into the filename so same-named files
   // from different folders never collide in the central backup folder.
@@ -165,7 +161,7 @@ export async function backupNote(
     return backupPath;
   } catch (e) {
     // Non-fatal — log and continue. Backup failure should not block the patch.
-    console.warn(`[VaultForge] Could not create backup for ${file.path}:`, e);
+    console.warn(`[Forge] Could not create backup for ${file.path}:`, e);
     return null;
   }
 }

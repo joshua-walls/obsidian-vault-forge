@@ -7,24 +7,24 @@
 // Takes current and new folder path via a modal input form.
 
 import { App, Modal, Notice, Setting, TFile } from "obsidian";
-import type VaultForgePlugin from "../main";
+import type ForgePlugin from "../main";
 import { getVaultPaths } from "../vault-paths";
 import { getMarkdownFiles, isExempt } from "../utils/files";
 import { loadSchema } from "../utils/schema";
 
 // ── Rename Dataview Folder ────────────────────────────────────────────────────
 
-export async function runRenameDataviewFolder(plugin: VaultForgePlugin): Promise<void> {
+export async function runRenameDataviewFolder(plugin: ForgePlugin): Promise<void> {
   new RenameDataviewModal(plugin.app, plugin).open();
 }
 
 class RenameDataviewModal extends Modal {
-  private plugin: VaultForgePlugin;
+  private plugin: ForgePlugin;
   private currentFolder = "";
   private newFolder = "";
   private scanScope = "";
 
-  constructor(app: App, plugin: VaultForgePlugin) {
+  constructor(app: App, plugin: ForgePlugin) {
     super(app);
     this.plugin = plugin;
   }
@@ -63,16 +63,16 @@ class RenameDataviewModal extends Modal {
         t.onChange((val) => { this.scanScope = val.trim(); });
       });
 
-    const buttonRow = contentEl.createDiv("vault-forge-button-row");
+    const buttonRow = contentEl.createDiv("forge-button-row");
 
     const previewBtn = buttonRow.createEl("button", { text: "Preview", cls: "mod-cta" });
     previewBtn.addEventListener("click", async () => {
       if (!this.currentFolder || !this.newFolder) {
-        new Notice("Vault Forge: Both folder paths are required.", 3000);
+        new Notice("Forge: Both folder paths are required.", 3000);
         return;
       }
       if (this.currentFolder === this.newFolder) {
-        new Notice("Vault Forge: Current and new folder paths are the same.", 3000);
+        new Notice("Forge: Current and new folder paths are the same.", 3000);
         return;
       }
       this.close();
@@ -90,7 +90,7 @@ class RenameDataviewModal extends Modal {
     const files = getMarkdownFiles(
       app,
       this.scanScope || undefined
-    ).filter((f) => !f.path.startsWith(paths.vaultForge));
+    ).filter((f) => !f.path.startsWith(paths.forge));
 
     const candidates: { file: TFile; updated: string }[] = [];
 
@@ -108,7 +108,7 @@ class RenameDataviewModal extends Modal {
 
     if (candidates.length === 0) {
       new Notice(
-        `Vault Forge: No dataview references to "${this.currentFolder}" found.`,
+        `Forge: No dataview references to "${this.currentFolder}" found.`,
         4000
       );
       return;
@@ -163,14 +163,14 @@ function updateDataviewFolderRefs(
 }
 
 class DataviewRenameConfirmModal extends Modal {
-  private plugin: VaultForgePlugin;
+  private plugin: ForgePlugin;
   private currentFolder: string;
   private newFolder: string;
   private candidates: { file: TFile; updated: string }[];
 
   constructor(
     app: App,
-    plugin: VaultForgePlugin,
+    plugin: ForgePlugin,
     currentFolder: string,
     newFolder: string,
     candidates: { file: TFile; updated: string }[]
@@ -189,31 +189,31 @@ class DataviewRenameConfirmModal extends Modal {
     contentEl.createEl("h2", { text: "Rename Dataview Folder — Confirm" });
     contentEl.createEl("p", {
       text: `"${this.currentFolder}" → "${this.newFolder}"`,
-      cls: "vault-forge-patch-description",
+      cls: "forge-patch-description",
     });
     contentEl.createEl("p", {
       text: `${this.candidates.length} file(s) will be updated.`,
     });
 
-    const list = contentEl.createEl("ul", { cls: "vault-forge-change-list" });
+    const list = contentEl.createEl("ul", { cls: "forge-change-list" });
     for (const { file } of this.candidates.slice(0, 20)) {
       list.createEl("li", { text: file.path });
     }
     if (this.candidates.length > 20) {
       list.createEl("li", {
         text: `…and ${this.candidates.length - 20} more`,
-        cls: "vault-forge-more",
+        cls: "forge-more",
       });
     }
 
     if (this.plugin.settings.patchBackupEnabled) {
       contentEl.createEl("p", {
-        text: "Backups will be written to System/VaultForge/Patches/Backups/",
-        cls: "vault-forge-backup-notice",
+        text: "Backups will be written to System/Forge/Patches/Backups/",
+        cls: "forge-backup-notice",
       });
     }
 
-    const buttonRow = contentEl.createDiv("vault-forge-button-row");
+    const buttonRow = contentEl.createDiv("forge-button-row");
 
     const applyBtn = buttonRow.createEl("button", { text: "Apply", cls: "mod-cta" });
     applyBtn.addEventListener("click", async () => {
@@ -232,7 +232,7 @@ class DataviewRenameConfirmModal extends Modal {
       }
 
       new Notice(
-        `Vault Forge: Updated dataview references in ${changed} file(s).`,
+        `Forge: Updated dataview references in ${changed} file(s).`,
         4000
       );
     });

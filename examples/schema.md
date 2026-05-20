@@ -1,5 +1,7 @@
 This is a small example schema. Copy the YAML block into your real schema note if you want a starter contract.
 
+> Locations are built dynamically based on the Settings of Forge. To update, either manually edit the file, or delete and Install Documentation to build new notes.
+
 Configured schema location:
 
 ```text

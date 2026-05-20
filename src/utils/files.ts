@@ -83,7 +83,7 @@ export function resolveTargets(app: App, target?: string, targetPattern?: string
     if (file) {
       results.push(file);
     } else {
-      console.warn(`[VaultForge] target not found: ${target}`);
+      console.warn(`[Forge] target not found: ${target}`);
     }
   }
 
@@ -191,19 +191,39 @@ function isHiddenPath(path: string): boolean {
  * Returns a timestamp string safe for use in filenames.
  * Format: 2026-05-17_143022
  */
-export function safeTimestamp(): string {
-  return new Date()
-    .toISOString()
-    .replace(/T/, "_")
-    .replace(/:/g, "")
-    .substring(0, 15);
+/**
+ * Returns a local-time timestamp in YYYY-MM-DDTHH:MM:SS format.
+ * No UTC offset suffix — Obsidian renders timestamps as-is in local time.
+ */
+export function localTimestamp(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    `T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+  );
 }
 
 /**
- * Returns today's date in yyyy-MM-dd format.
+ * Returns today's date in YYYY-MM-DD format using local time.
  */
 export function todayString(): string {
-  return new Date().toISOString().substring(0, 10);
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/**
+ * Returns a local-time safe filename timestamp: YYYYMMDD_HHmmss
+ * Used for backup filenames and run IDs.
+ */
+export function safeTimestamp(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return (
+    `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}` +
+    `_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`
+  );
 }
 
 /**
@@ -213,7 +233,7 @@ export function todayString(): string {
  */
 export function buildExemptList(
   schemaExemptPaths: string[],
-  vaultForgeFolder: string
+  forgeFolder: string
 ): string[] {
-  return [...schemaExemptPaths, vaultForgeFolder];
+  return [...schemaExemptPaths, forgeFolder];
 }

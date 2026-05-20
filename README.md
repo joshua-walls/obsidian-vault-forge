@@ -1,22 +1,22 @@
-# Vault Forge
+# Forge
 
 Schema-driven vault governance for Obsidian.
 
-Vault Forge helps you lint, validate, normalize, repair, and maintain long-lived Obsidian vaults using structured operations and repeatable workflows.
+Forge helps you lint, validate, normalize, repair, and maintain long-lived Obsidian vaults using structured operations and repeatable workflows.
 
 Designed for users who treat their vault like durable infrastructure.
 
 ---
 
-![Vault Forge Screenshot](assets/screenshot-main.png)
+![Forge Screenshot](assets/screenshot-main.png)
 
-Vault Forge treats vault maintenance as an explicit operational workflow.
+Forge treats vault maintenance as an explicit operational workflow.
 
 ---
 
-## What Vault Forge Does
+## What Forge Does
 
-Vault Forge provides operational tooling for Obsidian vault maintenance:
+Forge provides operational tooling for Obsidian vault maintenance:
 
 - Schema validation
 - Vault linting
@@ -27,6 +27,8 @@ Vault Forge provides operational tooling for Obsidian vault maintenance:
 - Maintenance routines
 - Dataview-safe folder operations
 - Vault-native documentation installation
+- Structured vault exports (inventory, meta, ontology indexes)
+- Dataview dashboard generation
 
 Think of it as:
 
@@ -36,7 +38,7 @@ Think of it as:
 
 ## Best Fit
 
-Vault Forge is especially useful for:
+Forge is especially useful for:
 
 - Large or long-lived vaults
 - Structured PKM systems
@@ -62,7 +64,7 @@ Vault Forge is especially useful for:
 Copy the following files into:
 
 ```text
-.obsidian/plugins/vault-forge/
+.obsidian/plugins/forge/
 ```
 
 Files:
@@ -82,15 +84,15 @@ Then reload Obsidian and enable the plugin.
 After enabling the plugin, run:
 
 ```text
-Vault Forge: Install Documentation
+Forge: Install Documentation
 ```
 
-Vault Forge installs vault-native documentation and examples into your configured Vault Forge folder.
+Forge installs vault-native documentation and examples into your configured Forge folder.
 
 Typical structure:
 
 ```text
-System/VaultForge/
+System/Forge/
 ├── Docs/
 ├── Examples/
 ├── Patches/
@@ -107,6 +109,7 @@ Recommended reading order:
 7. 6.Commands.md
 8. 7.Settings.md
 9. 8.Troubleshooting.md
+10. 9.Export.md
 
 ---
 
@@ -114,16 +117,18 @@ Recommended reading order:
 
 | Command | Purpose |
 |---|---|
-| `Vault Forge: Apply Vault Patch` | Apply structured vault operations from the configured patch note |
-| `Vault Forge: Run Vault Lint` | Validate vault structure against the configured schema |
-| `Vault Forge: Validate Schema` | Validate schema structure and configuration |
-| `Vault Forge: Normalize Tags` | Sort and deduplicate frontmatter tags |
-| `Vault Forge: Normalize Frontmatter` | Reorder frontmatter fields into canonical order |
-| `Vault Forge: Vault Maintenance` | Run maintenance routines for operational files |
-| `Vault Forge: Vault Repair` | Generate repair patches from lint results |
-| `Vault Forge: Restore Patch Run` | Restore files from a previous patch backup manifest |
-| `Vault Forge: Rename Dataview Folder` | Update Dataview folder references after folder changes |
-| `Vault Forge: Install Documentation` | Install vault-native docs and examples |
+| `Forge: Apply Vault Patch` | Apply structured vault operations from the configured patch note |
+| `Forge: Run Vault Lint` | Validate vault structure against the configured schema |
+| `Forge: Validate Schema` | Validate schema structure and configuration |
+| `Forge: Normalize Tags` | Sort and deduplicate frontmatter tags |
+| `Forge: Normalize Frontmatter` | Reorder frontmatter fields into canonical order |
+| `Forge: Vault Maintenance` | Run maintenance routines for operational files |
+| `Forge: Vault Repair` | Generate repair patches from lint results |
+| `Forge: Restore Patch Run` | Restore files from a previous patch backup manifest |
+| `Forge: Rename Dataview Folder` | Update Dataview folder references after folder changes |
+| `Forge: Install Documentation` | Install vault-native docs and examples |
+| `Forge: Export Vault Overview` | Build vault inventory, meta, and export note in one pass |
+| `Forge: Export Ontology Index` | Build per-type relationship graphs from configured note headings |
 
 ---
 
@@ -131,7 +136,7 @@ Recommended reading order:
 
 ## Schema Validation
 
-Vault Forge validates notes against a configurable schema.
+Forge validates notes against a configurable schema.
 
 Schemas define:
 
@@ -161,7 +166,7 @@ Schemas provide the structural foundation for linting, repair workflows, normali
 
 Linting validates notes against the configured schema.
 
-Vault Forge can detect:
+Forge can detect:
 
 - missing frontmatter
 - invalid enum values
@@ -169,6 +174,7 @@ Vault Forge can detect:
 - inconsistent tags
 - schema violations
 - metadata drift
+- stale notes past their configured review cycle
 
 Linting helps maintain long-term structural consistency across the vault.
 
@@ -193,7 +199,7 @@ This improves Dataview consistency and reduces structural drift over time.
 
 Patches are explicit vault operations stored as markdown notes.
 
-Vault Forge uses patches for:
+Forge uses patches for:
 
 - metadata repair
 - tag normalization
@@ -219,9 +225,27 @@ Patch operations remain reviewable, auditable, and restorable.
 
 ---
 
+## Vault Exports
+
+Forge can export structured data about your vault for use in AI sessions, dashboards, and external tooling.
+
+Export commands produce both machine-readable JSON and human-readable Obsidian markdown notes.
+
+`Export Vault Overview` generates three files in one pass:
+
+- `vault-inventory.json` — flat structural index of all notes
+- `vault-meta.json` — aggregate counts by domain, type, and status
+- `vault-export.md` — human-readable summary with inline Dataview fields
+
+`Export Ontology Index` builds per-type relationship graphs by walking a configured heading (e.g. `# Related`) in matched notes. One JSON and one markdown note per selected type.
+
+A Dataview dashboard note is created on the first export run and never overwritten.
+
+---
+
 # Documentation
 
-Vault Forge installs vault-native operational documentation and examples directly into your vault.
+Forge installs vault-native operational documentation and examples directly into your vault.
 
 Documentation includes:
 
@@ -229,6 +253,7 @@ Documentation includes:
 - schema documentation
 - linting workflows
 - patch workflows
+- export workflows
 - troubleshooting guidance
 - operational examples
 
@@ -243,7 +268,7 @@ Documentation intentionally lives inside the vault so it remains:
 
 # Safety Philosophy
 
-Vault Forge is designed for long-term vault maintenance.
+Forge is designed for long-term vault maintenance.
 
 The plugin emphasizes:
 
@@ -293,9 +318,17 @@ Apply reviewable vault operations with backups, reports, and restore manifests.
 
 ## Settings
 
-Configure system paths, patch behavior, linting rules, backups, and maintenance retention.
+Configure system paths, lint behavior, patch operations, maintenance retention, and export settings across tabbed sections.
 
 ![Settings](assets/screenshot-settings.png)
+
+---
+
+## Export
+
+Build structured vault exports and Dataview dashboards from schema-driven configuration.
+
+![Export](assets/screenshot-export.png)
 
 ---
 
@@ -314,7 +347,7 @@ Release builds are generated from the plugin root and packaged as release assets
 
 Knowledge systems decay over time.
 
-Vault Forge exists to help long-lived Obsidian vaults remain:
+Forge exists to help long-lived Obsidian vaults remain:
 
 - Structured
 - Queryable

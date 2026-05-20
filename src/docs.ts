@@ -1,5 +1,5 @@
 // src/docs.ts
-// Vault Forge documentation installer.
+// Forge documentation installer.
 //
 // Doc content lives as real .md files in /docs and /examples.
 // esbuild inlines them as string constants at build time via the text loader.
@@ -8,7 +8,7 @@
 // Placeholders in .md files use {{name}} syntax and are substituted at install time.
 
 import { App, Notice, TFile, normalizePath } from "obsidian";
-import type { VaultForgeSettings } from "./settings";
+import type { ForgeSettings } from "./settings";
 import { getVaultPaths } from "./vault-paths";
 import { ensureFolder, todayString } from "./utils/files";
 
@@ -17,8 +17,8 @@ import { ensureFolder, todayString } from "./utils/files";
 // time and generates these virtual modules as Record<string, string>.
 // Add, remove, or rename any .md file in those folders — no code changes needed.
 
-import docsRaw     from "vault-forge:docs";
-import examplesRaw from "vault-forge:examples";
+import docsRaw     from "forge:docs";
+import examplesRaw from "forge:examples";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -29,7 +29,7 @@ interface GeneratedDoc {
 
 interface DocContext {
   today: string;
-  vaultForge: string;
+  forge: string;
   docsFolder: string;
   examplesFolder: string;
   patchesFolder: string;
@@ -37,7 +37,7 @@ interface DocContext {
   schemaFile: string;
   exportsFolder: string;
   inboxFolder: string;
-  patternsFolder: string;
+  shapesFolder: string;
 }
 
 // ── Placeholder substitution ──────────────────────────────────────────────────
@@ -55,22 +55,22 @@ function interpolate(template: string, ctx: DocContext): string {
 
 export async function installVaultForgeDocumentation(
   app: App,
-  settings: VaultForgeSettings
+  settings: ForgeSettings
 ): Promise<void> {
   const paths = getVaultPaths(settings);
   const today = todayString();
 
   const ctx: DocContext = {
     today,
-    vaultForge:      paths.vaultForge,
-    docsFolder:      `${paths.vaultForge}/Docs`,
-    examplesFolder:  `${paths.vaultForge}/Examples`,
+    forge:      paths.forge,
+    docsFolder:      `${paths.forge}/Docs`,
+    examplesFolder:  `${paths.forge}/Examples`,
     patchesFolder:   paths.patches,
     patchFile:       paths.patchFile,
     schemaFile:      paths.schemaMd,
     exportsFolder:   paths.exports,
     inboxFolder:     paths.inbox,
-    patternsFolder:  paths.patterns,
+    shapesFolder:  paths.shapes,
   };
 
   await ensureFolder(app, ctx.docsFolder);
@@ -99,7 +99,7 @@ export async function installVaultForgeDocumentation(
   }
 
   new Notice(
-    `Vault Forge docs installed: ${written} written, ${skipped} already existed.`,
+    `Forge docs installed: ${written} written, ${skipped} already existed.`,
     6000
   );
 }
@@ -144,7 +144,7 @@ function buildDocList(ctx: DocContext): GeneratedDoc[] {
     ].join("\n");
 
     return {
-      path: `${ctx.vaultForge}/${relativePath}`,
+      path: `${ctx.forge}/${relativePath}`,
       content: frontmatter + body.trim() + "\n",
     };
   });
@@ -154,10 +154,10 @@ function buildDocList(ctx: DocContext): GeneratedDoc[] {
 
 /**
  * Infers tags from filename and folder.
- * All docs get tool/vault-forge plus a subject tag based on filename.
+ * All docs get tool/forge plus a subject tag based on filename.
  */
 function inferTags(key: string, folder: string): string[] {
-  const base = ["tool/vault-forge"];
+  const base = ["tool/forge"];
   const lower = key.toLowerCase();
 
   if (lower.includes("install") || lower.includes("start")) {

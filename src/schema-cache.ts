@@ -9,15 +9,16 @@
 // The cache is null until first load — commands must handle this gracefully.
 
 import { App } from "obsidian";
-import type { VaultForgeSettings } from "./settings";
+import type { ForgeSettings } from "./settings";
 import { loadSchema, VaultSchema } from "./utils/schema";
+import { todayString } from "./utils/files";
 
 export class SchemaCache {
   private cache: VaultSchema | null = null;
   private app: App;
-  private settings: VaultForgeSettings;
+  private settings: ForgeSettings;
 
-  constructor(app: App, settings: VaultForgeSettings) {
+  constructor(app: App, settings: ForgeSettings) {
     this.app = app;
     this.settings = settings;
   }
@@ -61,7 +62,7 @@ export class SchemaCache {
    * (lint toggles, retention counts, etc.) don't affect the cached schema, so
    * there is no reason to clear a valid cache when they change.
    */
-  updateSettings(settings: VaultForgeSettings): void {
+  updateSettings(settings: ForgeSettings): void {
     const oldPath = `${this.settings.schemaNoteFolder}/${this.settings.schemaNoteFile}`;
     const newPath = `${settings.schemaNoteFolder}/${settings.schemaNoteFile}`;
     this.settings = settings;
@@ -129,7 +130,7 @@ export class SchemaCache {
       case "created":
       case "updated":
       case "review_by":
-        return new Date().toISOString().substring(0, 10);
+        return todayString();
       case "ai_private":
         return false;
       case "review_cycle":
@@ -142,7 +143,7 @@ export class SchemaCache {
     switch (type) {
       case "boolean": return false;
       case "enum":    return values?.[0] ?? "";
-      case "date":    return new Date().toISOString().substring(0, 10);
+      case "date":    return todayString();
       case "list":    return [];
       default:        return "";
     }

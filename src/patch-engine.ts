@@ -1,5 +1,5 @@
 // src/patch-engine.ts
-// Vault Forge patch engine.
+// Forge patch engine.
 //
 // Port of Invoke-VaultPatch.ps1 — reads a vault-patch.md or legacy YAML file,
 // resolves target files, and applies each operation.
@@ -20,7 +20,7 @@
 // which the command uses to write the report and manifest.
 
 import { App, TFile, normalizePath, parseYaml, stringifyYaml } from "obsidian";
-import type { VaultForgeSettings } from "./settings";
+import type { ForgeSettings } from "./settings";
 import { getVaultPaths } from "./vault-paths";
 import {
   readNote,
@@ -39,6 +39,7 @@ import {
 import {
   resolveTargets,
   ensureFolder,
+  localTimestamp,
   safeTimestamp,
   todayString,
   getDomain,
@@ -141,7 +142,7 @@ export async function loadPatchFile(
   try {
     raw = await app.vault.read(file);
   } catch (e) {
-    console.warn(`[VaultForge] Could not read patch file: ${patchFilePath}`, e);
+    console.warn(`[Forge] Could not read patch file: ${patchFilePath}`, e);
     return null;
   }
 
@@ -149,7 +150,7 @@ export async function loadPatchFile(
     const yamlText = extractPatchYaml(raw, patchFilePath);
 
     if (!yamlText.trim()) {
-      console.warn(`[VaultForge] Patch file contains no YAML payload: ${patchFilePath}`);
+      console.warn(`[Forge] Patch file contains no YAML payload: ${patchFilePath}`);
       return null;
     }
 
@@ -163,7 +164,7 @@ export async function loadPatchFile(
 
     return { meta, operations };
   } catch (e) {
-    console.warn(`[VaultForge] Could not parse patch YAML:`, e);
+    console.warn(`[Forge] Could not parse patch YAML:`, e);
     return null;
   }
 }
@@ -176,14 +177,14 @@ export async function loadPatchFile(
  */
 export async function applyPatch(
   app: App,
-  settings: VaultForgeSettings,
+  settings: ForgeSettings,
   patchFile: PatchFile,
   patchFilePath: string,
   dryRun: boolean
 ): Promise<PatchRunResult> {
   const paths = getVaultPaths(settings);
   const runId = safeTimestamp();
-  const appliedAt = new Date().toISOString();
+  const appliedAt = localTimestamp();
   const results: PatchOpResult[] = [];
   const manifest: PatchManifestEntry[] = [];
 
@@ -591,7 +592,7 @@ async function applyMoveNote(
   app: App,
   op: PatchOperation,
   file: TFile,
-  settings: VaultForgeSettings,
+  settings: ForgeSettings,
   dryRun: boolean
 ): Promise<PatchOpResult> {
   const destinationFolder = op.destination_folder;
@@ -729,9 +730,9 @@ function resolveFieldValue(op: PatchOperation, file: TFile): unknown {
 function formatDate(date: Date, format: string): string {
   // Only yyyy-MM-dd is needed for vault use — extend if required
   if (format === "yyyy-MM-dd") {
-    return date.toISOString().substring(0, 10);
+    return todayString();
   }
-  return date.toISOString().substring(0, 10);
+  return todayString();
 }
 
 function opChanged(op: string, file: TFile, detail: string): PatchOpResult {

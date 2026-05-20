@@ -2,14 +2,14 @@
 // Resolves all standard vault paths from settings.
 // Every command imports this — never builds paths independently.
 
-import type { VaultForgeSettings } from "./settings";
+import type { ForgeSettings } from "./settings";
 
 export interface VaultPaths {
   // Schema
   schemaMd: string;
 
   // VaultForge system
-  vaultForge: string;
+  forge: string;
   patches: string;
   patchApplied: string;
   patchBackups: string;
@@ -24,7 +24,7 @@ export interface VaultPaths {
   lintRuns: string;
 
   // Vault structure
-  patterns: string;
+  shapes: string;
   templates: string;
   inbox: string;
   dashboards: string;
@@ -37,23 +37,23 @@ export interface VaultPaths {
  * Returns all standard vault-relative paths derived from settings.
  * All paths use forward slashes and have no leading slash.
  */
-export function getVaultPaths(settings: VaultForgeSettings): VaultPaths {
+export function getVaultPaths(settings: ForgeSettings): VaultPaths {
   const s = settings;
 
   const schemaMd = `${s.schemaNoteFolder}/${s.schemaNoteFile}`;
-  const vaultForge = s.vaultForgeFolder;
+  const forge = s.forgeFolder;
 
   return {
     // Schema
     schemaMd,
 
     // VaultForge system
-    vaultForge,
+    forge,
     patches: s.patchesFolder,
     patchApplied: `${s.patchesFolder}/Applied`,
-    patchBackups: `${s.patchesFolder}/Backups`,
+    patchBackups: s.patchBackupFolder || `${s.patchesFolder}/Backups`,
     patchReports: `${s.patchesFolder}/Reports`,
-    indexDefinitions: `${vaultForge}/Indexes`,
+    indexDefinitions: `${forge}/Indexes`,
 
     // Exports
     exports: s.exportsFolder,
@@ -64,7 +64,7 @@ export function getVaultPaths(settings: VaultForgeSettings): VaultPaths {
     lintRuns: s.lintRunsFolder,
 
     // Vault structure
-    patterns: s.patternsFolder,
+    shapes: s.shapesFolder,
     templates: `${s.systemFolder}/Templates`,
     inbox: s.inboxFolder,
     dashboards: `${s.systemFolder}/Dashboards`,

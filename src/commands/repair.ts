@@ -9,15 +9,15 @@
 //   3. Group errors by file
 //   4. Show repair modal — one file at a time with field prompts
 //   5. Collect values, build a vault-patch.md
-//   6. Write patch to System/VaultForge/Patches/vault-patch.md
+//   6. Write patch to System/Forge/Patches/vault-patch.md
 //   7. Offer to apply immediately via Apply Vault Patch
 
 import { App, Modal, Notice, TFile, Setting } from "obsidian";
-import type VaultForgePlugin from "../main";
+import type ForgePlugin from "../main";
 import { getVaultPaths } from "../vault-paths";
 import { loadSchema, VaultSchema } from "../utils/schema";
 import { readNote } from "../utils/frontmatter";
-import { ensureFolder, todayString } from "../utils/files";
+import { ensureFolder, localTimestamp, todayString } from "../utils/files";
 import { runApplyPatch } from "./apply-patch";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -39,14 +39,14 @@ interface RepairOp {
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 
-export async function runVaultRepair(plugin: VaultForgePlugin): Promise<void> {
+export async function runVaultRepair(plugin: ForgePlugin): Promise<void> {
   const { app, settings } = plugin;
   const paths = getVaultPaths(settings);
 
   // Load lint report
   const reportFile = app.vault.getAbstractFileByPath(paths.lintReportJson);
   if (!(reportFile instanceof TFile)) {
-    new Notice("Vault Forge: No lint report found. Run Vault Lint first.", 5000);
+    new Notice("Forge: No lint report found. Run Vault Lint first.", 5000);
     return;
   }
 
@@ -55,7 +55,7 @@ export async function runVaultRepair(plugin: VaultForgePlugin): Promise<void> {
     const raw = await app.vault.read(reportFile);
     report = JSON.parse(raw);
   } catch {
-    new Notice("Vault Forge: Could not parse lint-report.json.", 5000);
+    new Notice("Forge: Could not parse lint-report.json.", 5000);
     return;
   }
 
@@ -70,14 +70,14 @@ export async function runVaultRepair(plugin: VaultForgePlugin): Promise<void> {
   );
 
   if (errors.length === 0) {
-    new Notice("Vault Forge: No errors in lint report — nothing to repair.", 4000);
+    new Notice("Forge: No errors in lint report — nothing to repair.", 4000);
     return;
   }
 
   // Load schema for field definitions
   const schema = await loadSchema(app, settings);
   if (!schema) {
-    new Notice("Vault Forge: Could not load schema.md — repair aborted.", 5000);
+    new Notice("Forge: Could not load schema.md — repair aborted.", 5000);
     return;
   }
 
@@ -94,7 +94,7 @@ export async function runVaultRepair(plugin: VaultForgePlugin): Promise<void> {
 // ── Modal ─────────────────────────────────────────────────────────────────────
 
 class VaultRepairModal extends Modal {
-  private plugin: VaultForgePlugin;
+  private plugin: ForgePlugin;
   private schema: VaultSchema;
   private byFile: Map<string, LintError[]>;
   private fileList: string[];
@@ -104,7 +104,7 @@ class VaultRepairModal extends Modal {
 
   constructor(
     app: App,
-    plugin: VaultForgePlugin,
+    plugin: ForgePlugin,
     schema: VaultSchema,
     byFile: Map<string, LintError[]>
   ) {
@@ -136,12 +136,12 @@ class VaultRepairModal extends Modal {
     contentEl.createEl("h2", { text: `Vault Repair (${current} of ${total})` });
     contentEl.createEl("p", {
       text: filePath,
-      cls: "vault-forge-schema-path",
+      cls: "forge-schema-path",
     });
 
     // Show errors for this file
     contentEl.createEl("h3", { text: "Issues" });
-    const errorList = contentEl.createEl("ul", { cls: "vault-forge-error-list" });
+    const errorList = contentEl.createEl("ul", { cls: "forge-error-list" });
     for (const e of fileErrors) {
       const prefix = e.severity === "warning" ? "⚠️" : "🔴";
       errorList.createEl("li", { text: `${prefix} [${e.rule}] ${e.message}` });
@@ -225,7 +225,7 @@ class VaultRepairModal extends Modal {
     }
 
     // Buttons
-    const buttonRow = contentEl.createDiv("vault-forge-button-row");
+    const buttonRow = contentEl.createDiv("forge-button-row");
 
     const fixBtn = buttonRow.createEl("button", {
       text: fieldsToFix.length > 0 ? "Fix & Continue" : "Skip",
@@ -278,15 +278,15 @@ class VaultRepairModal extends Modal {
     });
 
     if (this.skippedCount > 0) {
-      contentEl.createEl("p", { text: `${this.skippedCount} file(s) skipped.`, cls: "vault-forge-error-note" });
+      contentEl.createEl("p", { text: `${this.skippedCount} file(s) skipped.`, cls: "forge-error-note" });
     }
 
     contentEl.createEl("p", {
       text: `The repair patch will be written to ${getVaultPaths(this.plugin.settings).patchFile}.`,
-      cls: "vault-forge-backup-notice",
+      cls: "forge-backup-notice",
     });
 
-    const buttonRow = contentEl.createDiv("vault-forge-button-row");
+    const buttonRow = contentEl.createDiv("forge-button-row");
 
     const writeAndApplyBtn = buttonRow.createEl("button", {
       text: "Write Patch & Apply",
@@ -302,7 +302,7 @@ class VaultRepairModal extends Modal {
     writeBtn.addEventListener("click", async () => {
       this.close();
       await this.writePatch();
-      new Notice("Vault Forge: Repair patch written. Run Apply Vault Patch when ready.", 5000);
+      new Notice("Forge: Repair patch written. Run Apply Vault Patch when ready.", 5000);
     });
 
     const cancelBtn = buttonRow.createEl("button", { text: "Cancel" });
@@ -320,7 +320,7 @@ class VaultRepairModal extends Modal {
       const hasOps = existing.includes("op:") || existing.includes("operations:");
       if (hasOps) {
         new Notice(
-          "Vault Forge: Overwriting existing patch file — previous operations will be replaced.",
+          "Forge: Overwriting existing patch file — previous operations will be replaced.",
           5000
         );
       }
@@ -328,10 +328,10 @@ class VaultRepairModal extends Modal {
 
     const patch = {
       meta: {
-        generated_at: new Date().toISOString(),
+        generated_at: localTimestamp(),
         description: "Repair pass — interactive fix of lint errors",
         schema_version: this.schema.meta.version,
-        source: "Vault Forge — Vault Repair",
+        source: "Forge — Vault Repair",
         contains_schema_changes: false,
       },
       operations: this.ops,
@@ -370,7 +370,7 @@ class VaultRepairModal extends Modal {
       "type: procedure",
       "status: draft",
       "tags:",
-      "  - tool/vault-forge",
+      "  - tool/forge",
       `created: ${today}`,
       `updated: ${today}`,
       "ai_private: false",
@@ -379,7 +379,7 @@ class VaultRepairModal extends Modal {
       "",
       "# Vault Patch",
       "",
-      "Patch generated by Vault Forge Repair.",
+      "Patch generated by Forge Repair.",
       "",
       "## Patch",
       "",
