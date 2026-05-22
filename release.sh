@@ -122,10 +122,13 @@ echo "Created git branch: $BRANCH_NAME"
 # =========================================
 git add .
 
-git commit -m "release: v${VERSION}"
+if git diff --cached --quiet; then
+  echo "Nothing new to commit — skipping."
+else
+  git commit -m "release: v${VERSION}"
+fi
 
 git push -u origin "$BRANCH_NAME"
-
 echo ""
 echo "Pushed branch: $BRANCH_NAME"
 echo "Release complete 🚀"
