@@ -8,7 +8,7 @@ Whether your vault holds projects, research, journals, client work, tasks, notes
 
 ---
 
-![Forge Overview](https://raw.githubusercontent.com/joshua-walls/obsidian/main/assets/screenshots/forge-settings-overview.png)
+![Forge Overview](https://github.com/joshua-walls/forge/blob/main/assets/screenshots/forge-settings-overview.png?raw=true)
 
 Most vaults start simple.
 
@@ -166,7 +166,7 @@ Run:
 Forge: Install Documentation
 ```
 
-![Install Documentation](https://raw.githubusercontent.com/joshua-walls/obsidian/main/assets/screenshots/install-docs-command.png)
+![Install Documentation](https://github.com/joshua-walls/forge/blob/main/assets/screenshots/install-docs-command.png?raw=true)
 
 Forge installs a complete documentation and examples system directly into your vault.
 
@@ -288,7 +288,7 @@ Forge groups findings by severity so you can prioritize structural problems incr
 
 ---
 
-![Vault Lint](https://raw.githubusercontent.com/joshua-walls/obsidian/main/assets/screenshots/vault-lint-overview.png)
+![Vault Lint](https://github.com/joshua-walls/forge/blob/main/assets/screenshots/vault-lint-overview.png?raw=true)
 
 ---
 
@@ -348,7 +348,7 @@ Patch workflows support:
 
 ---
 
-![Patch Operations](https://raw.githubusercontent.com/joshua-walls/obsidian/main/assets/screenshots/patch-engine-overview.png)
+![Patch Operations](https://github.com/joshua-walls/forge/blob/main/assets/screenshots/patch-engine-overview.png?raw=true)
 
 Additional patch walkthroughs and repair workflows are included in the installed docs and examples.
 
@@ -421,7 +421,7 @@ You do not need to be an ontology expert to use them.
 
 ---
 
-![Ontology Index](https://raw.githubusercontent.com/joshua-walls/obsidian/main/assets/screenshots/ontology-index-export.png)
+![Ontology Index](https://github.com/joshua-walls/forge/blob/main/assets/screenshots/ontology-index-export.png?raw=true)
 
 ---
 
@@ -448,7 +448,7 @@ Exports are useful for:
 
 ---
 
-![Vault Export](https://raw.githubusercontent.com/joshua-walls/obsidian/main/assets/screenshots/vault-overview-export.png)
+![Vault Export](https://github.com/joshua-walls/forge/blob/main/assets/screenshots/vault-overview-export.png?raw=true)
 
 Additional export examples and dashboard walkthroughs are included in the installed docs.
 
@@ -472,7 +472,7 @@ The examples are designed to be copied and adapted to your own vault.
 
 ---
 
-![Examples Folder](https://raw.githubusercontent.com/joshua-walls/obsidian/main/assets/screenshots/examples-folder-overview.png)
+![Examples Folder](https://github.com/joshua-walls/forge/blob/main/assets/screenshots/examples-folder-overview.png?raw=true)
 
 ---
 
@@ -532,7 +532,7 @@ Every setting is documented in the installed vault docs.
 
 ---
 
-![Forge Settings](https://raw.githubusercontent.com/joshua-walls/obsidian/main/assets/screenshots/settings-general-tab.png)
+![Forge Settings](https://github.com/joshua-walls/forge/blob/main/assets/screenshots/settings-general-tab.png?raw=true)
 
 ---
 
