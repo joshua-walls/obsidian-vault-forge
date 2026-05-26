@@ -10,12 +10,14 @@ import {
   OntologyMetricsResult,
   PatchHistoryResult,
   SchemaValidationResult,
+  ShapeLintResult,
 } from "./dashboard_types";
 
 type CacheLeaf =
   | { key: "latest_lint_result"; value: LintScanResult | null }
   | { key: "latest_schema_result"; value: SchemaValidationResult | null }
   | { key: "latest_ontology_result"; value: OntologyMetricsResult | null }
+  | { key: "latest_shape_lint_result"; value: ShapeLintResult | null }
   | { key: "latest_patch_history_result"; value: PatchHistoryResult | null }
   | { key: "dashboard_snapshot"; value: DashboardSnapshot | null };
 
@@ -75,6 +77,7 @@ export function emptyDashboardCache(): DashboardCacheFile {
     latest_lint_result: null,
     latest_schema_result: null,
     latest_ontology_result: null,
+    latest_shape_lint_result: null,
     latest_patch_history_result: null,
     dashboard_snapshot: null,
   };

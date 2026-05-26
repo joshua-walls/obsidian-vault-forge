@@ -8,6 +8,8 @@ export class ForgeHealthDashboardView extends ItemView {
   private plugin: ForgePlugin;
   private snapshot: DashboardSnapshot | null = null;
   private refreshing = false;
+  private expandedIssueGroups = new Set<string>();
+  private fullIssueGroups = new Set<string>();
 
   constructor(leaf: WorkspaceLeaf, plugin: ForgePlugin) {
     super(leaf);
@@ -87,6 +89,7 @@ export class ForgeHealthDashboardView extends ItemView {
     this.renderSchemaHealth(contentEl, this.snapshot);
     this.renderIssues(contentEl, this.lintIssues(this.snapshot));
     this.renderOntology(contentEl, this.snapshot);
+    this.renderShapeHealth(contentEl, this.snapshot);
     this.renderHistory(contentEl, this.snapshot);
     this.renderRecommendations(contentEl, this.snapshot);
   }
@@ -179,21 +182,7 @@ export class ForgeHealthDashboardView extends ItemView {
       return;
     }
 
-    const list = section.createDiv("forge-health-issue-list");
-    for (const issue of issues.slice(0, 80)) {
-      const row = list.createDiv(`forge-health-issue forge-health-issue-${issue.severity}`);
-      const main = row.createDiv("forge-health-issue-main");
-      main.createDiv({ text: issue.file_path, cls: "forge-health-issue-path" });
-      main.createDiv({ text: `[${issue.issue_type}] ${issue.message}`, cls: "forge-health-issue-message" });
-      if (issue.suggested_action) {
-        main.createDiv({ text: issue.suggested_action, cls: "forge-health-issue-action" });
-      }
-
-      const openButton = row.createEl("button", { text: "Open" });
-      openButton.addEventListener("click", () => {
-        this.app.workspace.openLinkText(issue.file_path, "", false);
-      });
-    }
+    this.renderGroupedIssues(section, issues, "active");
   }
 
   private renderOntology(container: HTMLElement, snapshot: DashboardSnapshot): void {
@@ -234,6 +223,53 @@ export class ForgeHealthDashboardView extends ItemView {
         folderList.createDiv({ text: `${folder}: ${count}`, cls: "forge-health-chip" });
       }
     }
+  }
+
+  private renderShapeHealth(container: HTMLElement, snapshot: DashboardSnapshot): void {
+    const shape = snapshot.shape_lint;
+    const critical = shape?.errors ?? 0;
+    const warnings = shape?.warnings ?? 0;
+    const status: SectionStatus = !shape
+      ? { label: "Not scanned", tone: "muted" }
+      : critical > 0
+        ? { label: `${critical} critical`, tone: "critical" }
+        : warnings > 0
+          ? { label: `${warnings} warning${warnings === 1 ? "" : "s"}`, tone: "warning" }
+          : { label: "Clear", tone: "good" };
+
+    const section = createSection(container, "Shape Health", status);
+    if (!shape) {
+      section.createDiv({ text: "Shape lint has not been run yet.", cls: "forge-health-muted" });
+    } else {
+      section.createDiv({
+        text: `Last shape lint ${formatRelativeWithExactDate(shape.generated_at)}`,
+        cls: "forge-health-section-meta",
+      });
+
+      const grid = section.createDiv("forge-health-metric-grid");
+      for (const [label, value] of [
+        ["Files scanned", shape.summary.files_scanned],
+        ["Shape issues", shape.summary.issue_count],
+        ["Missing headings", shape.summary.missing_heading_count],
+        ["Order issues", shape.summary.heading_order_issue_count],
+        ["Extra headings", shape.summary.extra_heading_count],
+        ["Empty sections", shape.summary.empty_section_count],
+      ]) {
+        const item = grid.createDiv("forge-health-metric");
+        item.createDiv({ text: String(value), cls: "forge-health-metric-value" });
+        item.createDiv({ text: String(label), cls: "forge-health-metric-label" });
+      }
+
+      if (shape.issues.length > 0) {
+        this.renderGroupedIssues(section, shape.issues, "shape");
+      } else {
+        section.createDiv({ text: "No Shape lint issues found.", cls: "forge-health-muted" });
+      }
+    }
+
+    const actions = section.createDiv("forge-health-section-actions");
+    const shapeLintButton = actions.createEl("button", { text: "Run Shape Lint" });
+    shapeLintButton.addEventListener("click", () => this.executeCommand("run-shape-lint"));
   }
 
   private renderHistory(container: HTMLElement, snapshot: DashboardSnapshot): void {
@@ -292,6 +328,98 @@ export class ForgeHealthDashboardView extends ItemView {
     return snapshot.issues.filter((issue) => !isSchemaIssue(issue));
   }
 
+  private renderGroupedIssues(
+    section: HTMLElement,
+    issues: DashboardIssue[],
+    scope: string
+  ): void {
+    const groups = groupIssuesByType(issues);
+    const controls = section.createDiv("forge-health-issue-controls");
+    const expandAll = controls.createEl("button", { text: "Expand all" });
+    expandAll.addEventListener("click", () => {
+      for (const group of groups) this.expandedIssueGroups.add(issueGroupKey(scope, group.issueType));
+      this.render();
+    });
+    const collapseAll = controls.createEl("button", { text: "Collapse all" });
+    collapseAll.addEventListener("click", () => {
+      for (const group of groups) {
+        const key = issueGroupKey(scope, group.issueType);
+        this.expandedIssueGroups.delete(key);
+        this.fullIssueGroups.delete(key);
+      }
+      this.render();
+    });
+
+    const list = section.createDiv("forge-health-issue-group-list");
+    for (const group of groups) {
+      const key = issueGroupKey(scope, group.issueType);
+      const expanded = this.expandedIssueGroups.has(key);
+      const showAll = this.fullIssueGroups.has(key);
+      const visibleIssues = !expanded
+        ? []
+        : showAll
+          ? group.issues
+          : group.issues.slice(0, 5);
+      const wrapper = list.createDiv("forge-health-issue-group");
+
+      const header = wrapper.createDiv("forge-health-issue-group-header");
+      const toggleButton = header.createEl("button", {
+        text: expanded ? "-" : "+",
+        cls: "forge-health-issue-group-toggle",
+      });
+      header.createSpan({ text: group.issueType, cls: "forge-health-issue-group-title" });
+      header.createSpan({
+        text: `${group.issues.length} issue${group.issues.length === 1 ? "" : "s"}`,
+        cls: `forge-health-issue-group-count is-${group.maxSeverity}`,
+      });
+      toggleButton.addEventListener("click", () => {
+        if (expanded) {
+          this.expandedIssueGroups.delete(key);
+          this.fullIssueGroups.delete(key);
+        } else {
+          this.expandedIssueGroups.add(key);
+        }
+        this.render();
+      });
+
+      const rows = wrapper.createDiv("forge-health-issue-list");
+      for (const issue of visibleIssues) {
+        this.renderIssueRow(rows, issue);
+      }
+
+      if (expanded && group.issues.length > 5) {
+        const toggle = wrapper.createEl("button", {
+          text: showAll ? "Show first 5" : `Show all ${group.issues.length}`,
+          cls: "forge-health-show-more",
+        });
+        toggle.addEventListener("click", () => {
+          if (showAll) {
+            this.fullIssueGroups.delete(key);
+          } else {
+            this.expandedIssueGroups.add(key);
+            this.fullIssueGroups.add(key);
+          }
+          this.render();
+        });
+      }
+    }
+  }
+
+  private renderIssueRow(container: HTMLElement, issue: DashboardIssue): void {
+    const row = container.createDiv(`forge-health-issue forge-health-issue-${issue.severity}`);
+    const main = row.createDiv("forge-health-issue-main");
+    main.createDiv({ text: issue.file_path, cls: "forge-health-issue-path" });
+    main.createDiv({ text: issue.message, cls: "forge-health-issue-message" });
+    if (issue.suggested_action) {
+      main.createDiv({ text: issue.suggested_action, cls: "forge-health-issue-action" });
+    }
+
+    const openButton = row.createEl("button", { text: "Open" });
+    openButton.addEventListener("click", () => {
+      this.app.workspace.openLinkText(issue.file_path, "", false);
+    });
+  }
+
   private executeCommand(commandId: string): void {
     const fullId = `forge:${commandId}`;
     const commands = (this.app as any).commands;
@@ -307,6 +435,53 @@ function isSchemaIssue(issue: DashboardIssue): boolean {
   return issue.source_command === "validate-schema" ||
     issue.issue_type.startsWith("schema_") ||
     issue.issue_type === "schema_validation";
+}
+
+interface IssueGroup {
+  issueType: string;
+  issues: DashboardIssue[];
+  maxSeverity: DashboardIssue["severity"];
+}
+
+function groupIssuesByType(issues: DashboardIssue[]): IssueGroup[] {
+  const groups = new Map<string, DashboardIssue[]>();
+
+  for (const issue of issues) {
+    const group = groups.get(issue.issue_type) ?? [];
+    group.push(issue);
+    groups.set(issue.issue_type, group);
+  }
+
+  return [...groups.entries()]
+    .map(([issueType, groupIssues]) => ({
+      issueType,
+      issues: groupIssues.sort((a, b) => severityWeight(b.severity) - severityWeight(a.severity)),
+      maxSeverity: groupIssues.reduce<DashboardIssue["severity"]>(
+        (max, issue) => severityWeight(issue.severity) > severityWeight(max) ? issue.severity : max,
+        "info"
+      ),
+    }))
+    .sort((a, b) => {
+      const severityDiff = severityWeight(b.maxSeverity) - severityWeight(a.maxSeverity);
+      if (severityDiff !== 0) return severityDiff;
+      if (b.issues.length !== a.issues.length) return b.issues.length - a.issues.length;
+      return a.issueType.localeCompare(b.issueType);
+    });
+}
+
+function issueGroupKey(scope: string, issueType: string): string {
+  return `${scope}:${issueType}`;
+}
+
+function severityWeight(severity: DashboardIssue["severity"]): number {
+  switch (severity) {
+    case "critical":
+      return 3;
+    case "warning":
+      return 2;
+    default:
+      return 1;
+  }
 }
 
 type SectionStatus = { label: string; tone: "good" | "warning" | "critical" | "muted" };

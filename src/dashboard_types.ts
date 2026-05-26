@@ -61,6 +61,28 @@ export interface OntologyMetricsResult {
   orphaned_entities: number | null;
 }
 
+export interface ShapeLintSummary {
+  files_scanned: number;
+  issue_count: number;
+  missing_heading_count: number;
+  heading_order_issue_count: number;
+  extra_heading_count: number;
+  empty_section_count: number;
+}
+
+export interface ShapeLintResult {
+  schema_version: number;
+  source_command: "run-shape-lint" | "refresh-vault-health-dashboard";
+  generated_at: string;
+  duration_ms: number;
+  files_scanned: number;
+  issues: DashboardIssue[];
+  summary: ShapeLintSummary;
+  errors: number;
+  warnings: number;
+  infos: number;
+}
+
 export interface PatchRunSummary {
   run_id: string;
   description: string;
@@ -94,6 +116,7 @@ export interface DashboardSnapshot {
   lint: LintScanResult | null;
   schema: SchemaValidationResult | null;
   ontology: OntologyMetricsResult | null;
+  shape_lint: ShapeLintResult | null;
   patch_history: PatchHistoryResult | null;
 }
 
@@ -102,6 +125,7 @@ export interface DashboardCacheFile {
   latest_lint_result: LintScanResult | null;
   latest_schema_result: SchemaValidationResult | null;
   latest_ontology_result: OntologyMetricsResult | null;
+  latest_shape_lint_result: ShapeLintResult | null;
   latest_patch_history_result: PatchHistoryResult | null;
   dashboard_snapshot: DashboardSnapshot | null;
 }
@@ -147,6 +171,14 @@ function suggestedActionForLintRule(rule: string): string {
       return "Normalize the tag namespace.";
     case "invalid_shape_ref":
       return "Use a shape that exists in the shapes folder.";
+    case "shape_heading_missing":
+      return "Add the missing heading from the shape template.";
+    case "shape_heading_order":
+      return "Reorder headings to match the shape template.";
+    case "shape_heading_extra":
+      return "Review whether this heading belongs in the shape template.";
+    case "shape_section_empty":
+      return "Add content to the required section or revise the template.";
     default:
       return "Review this file against the current Forge schema.";
   }

@@ -1,52 +1,43 @@
-# Forge 1.2.0
+# Forge 1.3.0
 
-Forge 1.2.0 adds operation-level Patch Restore. Restore now works from structured patch operation data instead of relying only on full-file `.bak` replacement.
+Forge 1.3.0 adds a dedicated Shape Health dashboard section and splits Shape Lint from the general Vault Lint workflow.
 
 ---
 
 ## What changed
 
-### Operation-level restore manifests
+### Shape Health dashboard section
 
-Confirmed patch runs now write `manifest_version: 2` restore manifests. New manifests include an `operations` array with:
+The Vault Health Dashboard now includes a Shape Health card for structural Shape/template issues. It reports:
 
-- operation id
-- operation index
-- operation type
-- file path before and after
-- restore target
-- before value
-- after value
-- reverse action
+- files scanned
+- total Shape issues
+- missing headings
+- heading order issues
+- extra headings
+- empty sections
 
-This gives Forge enough data to reverse individual patch operations.
+Shape issues are listed separately from general Active Issues and include Open actions for affected files.
 
-### Selective Patch Restore
+### Separate Shape Lint workflow
 
-`Forge: Restore Patch Run` now distinguishes between newer operation manifests and legacy backup-only manifests.
+Forge now has a dedicated `Forge: Run Shape Lint` command backed by a Shape Lint service. Shape lint results are cached independently from Vault Lint results.
 
-For operation manifests, Forge shows each reversible operation with its file, label, status, and before/after summary. Users can select which reversible operations to restore.
+Vault Lint continues to report general vault/schema/frontmatter/metadata issues. Shape Lint reports structural heading/template drift.
 
-### Conflict-aware safety
+### Shape Lint exports
 
-Before restoring an operation, Forge checks the current vault state. Restore proceeds only when the current value still matches the value written by the original patch.
+Shape Lint writes its own artifacts:
 
-If a user edited that field, tag list, frontmatter order, or moved path after the patch ran, Forge marks the operation as conflicted and skips it by default.
+- `System/Exports/shape-lint-report.json`
+- `System/Exports/ShapeLintReports/shape-lint-run-{timestamp}.md`
 
-### Legacy fallback
+### Dashboard refresh behavior
 
-Older manifests still restore through the existing full-file backup path. Forge now labels these as legacy full-file restores and shows a stronger overwrite warning.
-
-New patch applies no longer create full-file `.bak` backups. Operation-level manifests are the restore source going forward.
-
-### Restore reports
-
-Operation-level restores write a patch restore report with restored, conflicted, skipped, and error counts.
+Manual dashboard refresh runs Shape Lint only when Shape lint is enabled in settings. Existing cached Shape Lint results are shown when available.
 
 ---
 
 ## Scope notes
 
-Plain note moves are reversible. Move operations that also rewrite or strip frontmatter are not marked as operation-restorable in this version because reversing only the path would not fully reverse the operation.
-
-Existing backups remain useful as legacy recovery artifacts, but new normal restore behavior is operation-level and conflict-aware.
+Shape Health is read-only. It does not run Shape Repair or mutate notes.

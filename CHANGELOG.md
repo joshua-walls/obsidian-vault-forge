@@ -1,3 +1,19 @@
+# 1.3.0
+
+## Added
+
+- Dedicated Shape Lint service and `Forge: Run Shape Lint` command.
+- Separate Shape Lint exports at `System/Exports/shape-lint-report.json` and `System/Exports/ShapeLintReports/`.
+- Vault Health Dashboard Shape Health section with structural issue counts and issue rows.
+- Dashboard cache support for `latest_shape_lint_result`.
+
+## Changed
+
+- Vault Lint and Shape Lint are now separate workflows. Active Issues reports general Vault Lint findings, while Shape Health reports shape/template heading issues.
+- Dashboard refresh runs Shape Lint only when Shape lint is enabled.
+
+---
+
 # 1.2.0
 
 ## Added
