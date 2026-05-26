@@ -1293,6 +1293,19 @@ export class ForgeSettingsTab extends PluginSettingTab {
 
     if (s.shapeLintEnabled) {
       new Setting(el)
+        .setName("Strict template matching")
+        .setDesc(
+          "Also flag headings that are not defined in the matching shape template. " +
+          "When off, Shape Lint checks required template headings and heading levels, but ignores extra headings."
+        )
+        .addToggle((t) =>
+          t.setValue(s.shapeLintStrictMode).onChange(async (v) => {
+            s.shapeLintStrictMode = v;
+            await this.plugin.saveSettings();
+          })
+        );
+
+      new Setting(el)
         .setName("Lint scope")
         .setDesc("Validate all notes in the vault, or limit to selected folders only.")
         .addDropdown((dd) => {

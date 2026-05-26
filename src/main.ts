@@ -8,6 +8,7 @@ import { SchemaCache } from "./schema-cache";
 import { LintService } from "./lint_service";
 import { SchemaService } from "./schema_service";
 import { OntologyService } from "./ontology_service";
+import { ShapeLintService } from "./shape_lint_service";
 import { PatchHistoryService } from "./patch_history_service";
 import { DashboardService } from "./dashboard_service";
 import {
@@ -28,6 +29,7 @@ import { runExportOverview } from "./commands/export-overview";
 import { runExportOntology } from "./commands/export-ontology";
 import { runRefineShapes } from "./commands/refine-shapes";
 import { runShapeRepair } from "./commands/shape-repair";
+import { runShapeLint } from "./commands/run-shape-lint";
 
 export default class ForgePlugin extends Plugin {
   settings: ForgeSettings;
@@ -35,6 +37,7 @@ export default class ForgePlugin extends Plugin {
   lintService: LintService;
   schemaService: SchemaService;
   ontologyService: OntologyService;
+  shapeLintService: ShapeLintService;
   patchHistoryService: PatchHistoryService;
   dashboardService: DashboardService;
 
@@ -70,11 +73,13 @@ export default class ForgePlugin extends Plugin {
     this.lintService = new LintService(this.app, this.settings);
     this.schemaService = new SchemaService(this.app, this.settings, this.schemaCache);
     this.ontologyService = new OntologyService(this.app, this.settings);
+    this.shapeLintService = new ShapeLintService(this.app, this.settings);
     this.patchHistoryService = new PatchHistoryService(this.app, this.settings);
     this.dashboardService = new DashboardService(this.app, this.settings, {
       lintService: this.lintService,
       schemaService: this.schemaService,
       ontologyService: this.ontologyService,
+      shapeLintService: this.shapeLintService,
       patchHistoryService: this.patchHistoryService,
     });
 
@@ -229,6 +234,17 @@ export default class ForgePlugin extends Plugin {
     });
 
     this.addCommand({
+      id: "run-shape-lint",
+      name: "Run Shape Lint",
+      callback: () => {
+        runShapeLint(this).catch((e: Error) => {
+          new Notice(`Forge: ${e?.message ?? "Unexpected error"}`, 6000);
+          console.error("[Forge] run-shape-lint error:", e);
+        });
+      },
+    });
+
+    this.addCommand({
       id: "shape-repair",
       name: "Run Shape Repair",
       callback: () => {
@@ -359,12 +375,14 @@ export default class ForgePlugin extends Plugin {
     if (this.lintService) this.lintService = new LintService(this.app, this.settings);
     if (this.schemaService) this.schemaService = new SchemaService(this.app, this.settings, this.schemaCache);
     if (this.ontologyService) this.ontologyService = new OntologyService(this.app, this.settings);
+    if (this.shapeLintService) this.shapeLintService = new ShapeLintService(this.app, this.settings);
     if (this.patchHistoryService) this.patchHistoryService = new PatchHistoryService(this.app, this.settings);
     if (this.dashboardService) {
       this.dashboardService = new DashboardService(this.app, this.settings, {
         lintService: this.lintService,
         schemaService: this.schemaService,
         ontologyService: this.ontologyService,
+        shapeLintService: this.shapeLintService,
         patchHistoryService: this.patchHistoryService,
       });
     }

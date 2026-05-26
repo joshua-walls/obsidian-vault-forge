@@ -135,6 +135,7 @@ export async function lintShapeHeadings(
 ): Promise<LintResult[]> {
   const results: LintResult[] = [];
   const strict = settings.lintStrictMode;
+  const flagExtraHeadings = settings.shapeLintStrictMode;
 
   const note = await readNote(app, file);
   if (!note || !note.hasFrontmatter) return results;
@@ -167,6 +168,7 @@ export async function lintShapeHeadings(
     file.path,
     typeValue,
     strict,
+    flagExtraHeadings,
     results,
     null
   );
@@ -195,6 +197,7 @@ function lintLevel(
   filePath: string,
   typeValue: string,
   strict: boolean,
+  flagExtraHeadings: boolean,
   results: LintResult[],
   parentText: string | null
 ): void {
@@ -240,6 +243,7 @@ function lintLevel(
         filePath,
         typeValue,
         strict,
+        flagExtraHeadings,
         results,
         tn.text
       );
@@ -268,6 +272,8 @@ function lintLevel(
   }
 
   // ── Extra headings ────────────────────────────────────────────────────────
+  if (!flagExtraHeadings) return;
+
   const unknowns = docSections.filter((ds) => !consumed.has(ds));
   for (const u of unknowns) {
     const sev: LintSeverity = u.headingLevel === 1
@@ -282,7 +288,7 @@ function lintLevel(
     ));
 
     // Recurse into unknown children so we catch extras at deeper levels too
-    lintLevel([], u.children, bodyLines, filePath, typeValue, strict, results, u.headingText);
+    lintLevel([], u.children, bodyLines, filePath, typeValue, strict, flagExtraHeadings, results, u.headingText);
   }
 }
 

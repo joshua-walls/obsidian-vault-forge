@@ -10,6 +10,7 @@ import type { LintService } from "./lint_service";
 import type { OntologyService } from "./ontology_service";
 import type { PatchHistoryService } from "./patch_history_service";
 import type { SchemaService } from "./schema_service";
+import type { ShapeLintService } from "./shape_lint_service";
 import type { ForgeSettings } from "./settings";
 import { getVaultPaths } from "./vault-paths";
 import { ensureFolder } from "./utils/files";
@@ -18,6 +19,7 @@ interface DashboardServices {
   lintService: LintService;
   schemaService: SchemaService;
   ontologyService: OntologyService;
+  shapeLintService: ShapeLintService;
   patchHistoryService: PatchHistoryService;
 }
 
@@ -42,6 +44,9 @@ export class DashboardService {
     await this.services.lintService.runLint("refresh-vault-health-dashboard");
     await this.services.schemaService.validate("refresh-vault-health-dashboard");
     await this.services.ontologyService.collectMetrics("refresh-vault-health-dashboard");
+    if (this.settings.shapeLintEnabled) {
+      await this.services.shapeLintService.runShapeLint("refresh-vault-health-dashboard");
+    }
     await this.services.patchHistoryService.readHistory("refresh-vault-health-dashboard");
 
     return this.composeSnapshotFromLatest(Date.now() - started);
@@ -52,6 +57,7 @@ export class DashboardService {
     const latestLint = cache.latest_lint_result;
     const latestSchema = cache.latest_schema_result;
     const latestOntology = cache.latest_ontology_result;
+    const latestShapeLint = cache.latest_shape_lint_result;
     const latestPatchHistory = cache.latest_patch_history_result;
 
     const issues: DashboardIssue[] = [
@@ -63,7 +69,7 @@ export class DashboardService {
       notes_scanned: latestLint?.files_scanned ?? 0,
       lint_issue_count: latestLint?.issues.length ?? 0,
       schema_violation_count: latestSchema?.violations.length ?? 0,
-      broken_shape_count: latestLint?.issues.filter((issue) => issue.issue_type.startsWith("shape_")).length ?? 0,
+      broken_shape_count: latestShapeLint?.issues.length ?? 0,
       invalid_frontmatter_count: latestLint?.issues.filter((issue) =>
         ["no_frontmatter", "required_field", "type_mismatch", "enum_value", "date_format"].includes(issue.issue_type)
       ).length ?? 0,
@@ -82,6 +88,7 @@ export class DashboardService {
       lint: latestLint,
       schema: latestSchema,
       ontology: latestOntology,
+      shape_lint: latestShapeLint,
       patch_history: latestPatchHistory,
     };
 

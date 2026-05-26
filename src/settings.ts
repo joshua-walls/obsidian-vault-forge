@@ -85,6 +85,7 @@ export interface ForgeSettings {
   shapesFolder: string;
   shapeIncludeSubfolders: boolean;
   shapeLintEnabled: boolean;
+  shapeLintStrictMode: boolean;
   shapeLintScope: "all" | "folder";
   shapeLintFolders: string[];
   shapeRefinementEnabled: boolean;
@@ -184,6 +185,7 @@ export const DEFAULT_SETTINGS: ForgeSettings = {
   shapesFolder: "System/Shapes",
   shapeIncludeSubfolders: false,
   shapeLintEnabled: false,
+  shapeLintStrictMode: false,
   shapeLintScope: "all",
   shapeLintFolders: [],
   shapeRefinementEnabled: false,

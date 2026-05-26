@@ -23,10 +23,7 @@
 //   inline_fuzzy_inline    — inline key looks like a typo of a known inline field
 //   inline_undocumented    — inline key not in schema inline.allowed list
 //   stale_note             — note's review cycle has elapsed
-//   shape_heading_missing  — heading required by template is absent
-//   shape_heading_order    — template headings present but in wrong order
-//   shape_heading_extra    — heading in note not found in template
-//   shape_section_empty    — required section exists but has no content
+// Shape heading validation is handled by the separate Shape Lint service.
 
 import { App, TFile } from "obsidian";
 import type { ForgeSettings } from "./settings";
@@ -49,7 +46,6 @@ import {
   isExempt,
 } from "./utils/files";
 import { readNote, isFieldPresent, getFmString } from "./utils/frontmatter";
-import { buildShapeHeadingCache, lintShapeHeadings, ParsedHeading } from "./commands/shape-lint";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -95,14 +91,10 @@ export async function runLint(
 
   const validShapes = getValidShapeNames(app, paths.shapes);
 
-  const shapeHeadingCache = settings.shapeLintEnabled
-    ? await buildShapeHeadingCache(app, settings)
-    : new Map<string, ParsedHeading[]>();
-
   const allResults: LintResult[] = [];
 
   for (const file of allFiles) {
-    const fileResults = await lintFile(app, file, schema, validShapes, settings, shapeHeadingCache);
+    const fileResults = await lintFile(app, file, schema, validShapes, settings);
     allResults.push(...fileResults);
   }
 
@@ -138,8 +130,7 @@ async function lintFile(
   file: TFile,
   schema: VaultSchema,
   validShapes: string[],
-  settings: ForgeSettings,
-  shapeHeadingCache: Map<string, ParsedHeading[]>
+  settings: ForgeSettings
 ): Promise<LintResult[]> {
   const note = await readNote(app, file);
   const results: LintResult[] = [];
@@ -174,12 +165,6 @@ async function lintFile(
   // Inline metadata
   if (settings.lintInlineMetadata) {
     results.push(...testInlineMetadata(file.path, content, schema, fm));
-  }
-
-  // Shape heading validation
-  if (settings.shapeLintEnabled && shapeHeadingCache.size > 0) {
-    const shapeResults = await lintShapeHeadings(app, file, content, settings, shapeHeadingCache);
-    results.push(...shapeResults);
   }
 
   return results;
