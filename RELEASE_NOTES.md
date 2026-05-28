@@ -1,18 +1,17 @@
-# Forge 1.5.0
+# Forge 1.5.1
 
-Forge 1.5.0 adds dashboard auto-refresh so Vault Health can stay current while the dashboard is open.
+Forge 1.5.1 extends Vault Maintenance to cover Shape Lint and Shape Repair artifacts.
 
 ## What changed
 
-- Added an Auto-refresh control at the top of the Vault Health dashboard.
-- Auto-refresh can be enabled or disabled directly from the dashboard.
-- Users can choose a refresh interval of 1, 3, 5, 15, or 30 minutes.
-- Auto-refresh uses the existing background dashboard refresh path and updates the dashboard cache silently.
-- Manual refresh remains available and keeps its existing user-visible error notices.
-- Auto-refresh settings persist across dashboard reopen and plugin reload.
+- Vault Maintenance now trims old Shape Lint run notes in `System/Exports/ShapeLintReports`.
+- Vault Maintenance now trims Shape Repair history entries in `shape-repair-history.json`.
+- Vault Maintenance now trims old Shape Repair run notes in the configured Shape Repair runs folder.
+- Added a Maintenance setting for Shape Lint run retention.
+- Shape Repair maintenance reuses the existing Shape Repair history retention setting for both history entries and run notes.
 
 ## Compatibility
 
-- Auto-refresh is disabled by default.
-- Existing dashboard refresh, cache, command palette, lint, schema, ontology, shape lint, and patch history behavior is preserved.
+- The latest `shape-lint-report.json` is preserved.
+- Existing maintenance, lint, patch, dashboard, and shape workflows are otherwise unchanged.
 - No user migration is required.

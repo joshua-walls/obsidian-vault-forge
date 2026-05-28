@@ -1,3 +1,22 @@
+# 1.5.1
+
+## Added
+
+- Maintenance cleanup for Shape Lint run notes.
+- Maintenance cleanup for Shape Repair history and run notes.
+- Maintenance setting for Shape Lint run retention.
+
+## Changed
+
+- Shape Repair maintenance now enforces retention even when no new repair run has been appended.
+
+## Compatibility
+
+- Shape Lint still keeps the latest `shape-lint-report.json`; maintenance trims accumulated run notes.
+- Existing Shape Repair retention settings are reused for both repair history and repair run notes.
+
+---
+
 # 1.5.0
 
 ## Added
