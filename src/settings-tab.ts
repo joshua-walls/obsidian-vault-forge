@@ -551,6 +551,16 @@ export class ForgeSettingsTab extends PluginSettingTab {
           await this.plugin.saveSettings();
         })
       );
+
+    new Setting(el)
+      .setName("Shape lint run retention")
+      .setDesc("Number of shape lint run notes to keep.")
+      .addSlider((s) =>
+        s.setLimits(5, 50, 5).setValue(this.plugin.settings.shapeLintRunRetentionCount).setDynamicTooltip().onChange(async (v) => {
+          this.plugin.settings.shapeLintRunRetentionCount = v;
+          await this.plugin.saveSettings();
+        })
+      );
   }
 
   // ── Export ────────────────────────────────────────────────────────────────

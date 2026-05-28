@@ -65,6 +65,7 @@ export interface ForgeSettings {
   lintHistoryRetentionDays: number;
   lintHistoryMaxEntries: number;
   patchReportRetentionCount: number;
+  shapeLintRunRetentionCount: number;
 
   // ── Export ────────────────────────────────────────────────────────
   exportEnabled: boolean;
@@ -170,6 +171,7 @@ export const DEFAULT_SETTINGS: ForgeSettings = {
   lintHistoryRetentionDays: 14,
   lintHistoryMaxEntries: 20,
   patchReportRetentionCount: 20,
+  shapeLintRunRetentionCount: 20,
 
   // Export
   exportEnabled: false,

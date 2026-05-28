@@ -6,7 +6,9 @@
 //   - Lint history trimming (by age and entry count)
 //   - Patch backup files older than retention threshold
 //   - Lint run notes over retention count
+//   - Shape lint run notes over retention count
 //   - Patch report notes over retention count
+//   - Shape repair history and run notes over retention count
 //   - Stale inbox files older than retention threshold
 //
 // Never modifies vault notes — only deletes system artifacts.
@@ -77,7 +79,10 @@ async function runAllTasks(
   const results: MaintenanceResult[] = [];
   results.push(...await trimLintHistory(app, settings, dryRun));
   results.push(...await trimLintRunNotes(app, settings, dryRun));
+  results.push(...await trimShapeLintRunNotes(app, settings, dryRun));
   results.push(...await trimPatchReportNotes(app, settings, dryRun));
+  results.push(...await trimShapeRepairHistory(app, settings, dryRun));
+  results.push(...await trimShapeRepairRunNotes(app, settings, dryRun));
   results.push(...await cleanPatchBackups(app, settings, dryRun));
   results.push(...await cleanInbox(app, settings, dryRun));
   return results;
@@ -182,6 +187,109 @@ async function trimPatchReportNotes(
     }
     results.push({ task: "patch_reports", target: file.path, status: "removed",
       detail: `Patch report over retention limit of ${settings.patchReportRetentionCount}` });
+  }
+
+  return results;
+}
+
+async function trimShapeLintRunNotes(
+  app: App,
+  settings: ForgePlugin["settings"],
+  dryRun: boolean
+): Promise<MaintenanceResult[]> {
+  const paths = getVaultPaths(settings);
+  const folder = `${paths.exports}/ShapeLintReports`;
+  const files = getMarkdownFiles(app, folder)
+    .filter((f) => f.name.startsWith("shape-lint-run-"))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  if (files.length <= settings.shapeLintRunRetentionCount) {
+    return [{ task: "shape_lint_runs", target: folder, status: "skipped",
+      detail: `${files.length} shape lint run notes, within retention limit of ${settings.shapeLintRunRetentionCount}` }];
+  }
+
+  const toRemove = files.slice(0, files.length - settings.shapeLintRunRetentionCount);
+  const results: MaintenanceResult[] = [];
+
+  for (const file of toRemove) {
+    if (!dryRun) {
+      await app.vault.delete(file);
+    }
+    results.push({ task: "shape_lint_runs", target: file.path, status: "removed",
+      detail: `Shape lint run note over retention limit of ${settings.shapeLintRunRetentionCount}` });
+  }
+
+  return results;
+}
+
+async function trimShapeRepairHistory(
+  app: App,
+  settings: ForgePlugin["settings"],
+  dryRun: boolean
+): Promise<MaintenanceResult[]> {
+  const paths = getVaultPaths(settings);
+  const histFile = app.vault.getAbstractFileByPath(paths.shapeRepairHistory);
+
+  if (!(histFile instanceof TFile)) {
+    return [{ task: "shape_repair_history", target: paths.shapeRepairHistory, status: "skipped",
+      detail: "shape-repair-history.json does not exist yet" }];
+  }
+
+  let history: any[] = [];
+  try {
+    const raw = await app.vault.read(histFile);
+    history = JSON.parse(raw);
+    if (!Array.isArray(history)) history = [];
+  } catch {
+    return [{ task: "shape_repair_history", target: paths.shapeRepairHistory, status: "error",
+      detail: "Could not parse shape-repair-history.json" }];
+  }
+
+  const before = history.length;
+  const max = settings.shapeRepairHistoryRetentionCount ?? 20;
+  if (history.length > max) {
+    history = history.slice(history.length - max);
+  }
+
+  const removed = before - history.length;
+  if (removed === 0) {
+    return [{ task: "shape_repair_history", target: paths.shapeRepairHistory, status: "skipped",
+      detail: `${before} entries, within retention limit of ${max}` }];
+  }
+
+  if (!dryRun) {
+    await app.vault.modify(histFile, JSON.stringify(history, null, 2));
+  }
+
+  return [{ task: "shape_repair_history", target: paths.shapeRepairHistory, status: "trimmed",
+    detail: `Removed ${removed} entries (${before} → ${history.length}). Policy: ${max} max` }];
+}
+
+async function trimShapeRepairRunNotes(
+  app: App,
+  settings: ForgePlugin["settings"],
+  dryRun: boolean
+): Promise<MaintenanceResult[]> {
+  const folder = settings.shapeRepairRunsFolder;
+  const max = settings.shapeRepairHistoryRetentionCount ?? 20;
+  const files = getMarkdownFiles(app, folder)
+    .filter((f) => f.name.startsWith("shape-repair-"))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  if (files.length <= max) {
+    return [{ task: "shape_repair_runs", target: folder, status: "skipped",
+      detail: `${files.length} shape repair run notes, within retention limit of ${max}` }];
+  }
+
+  const toRemove = files.slice(0, files.length - max);
+  const results: MaintenanceResult[] = [];
+
+  for (const file of toRemove) {
+    if (!dryRun) {
+      await app.vault.delete(file);
+    }
+    results.push({ task: "shape_repair_runs", target: file.path, status: "removed",
+      detail: `Shape repair run note over retention limit of ${max}` });
   }
 
   return results;
@@ -295,6 +403,9 @@ class MaintenanceConfirmModal extends Modal {
     const policyList = policy.createEl("ul");
     policyList.createEl("li", { text: `Lint history: ${settings.lintHistoryRetentionDays} days / ${settings.lintHistoryMaxEntries} entries max` });
     policyList.createEl("li", { text: `Lint run notes: ${settings.lintRunRetentionCount} notes max` });
+    policyList.createEl("li", { text: `Shape lint run notes: ${settings.shapeLintRunRetentionCount} notes max` });
+    policyList.createEl("li", { text: `Shape repair history: ${settings.shapeRepairHistoryRetentionCount} entries max` });
+    policyList.createEl("li", { text: `Shape repair run notes: ${settings.shapeRepairHistoryRetentionCount} notes max` });
     policyList.createEl("li", { text: `Patch reports: ${settings.patchReportRetentionCount} notes max` });
     policyList.createEl("li", { text: `Patch backups: ${settings.backupRetentionDays} days` });
     policyList.createEl("li", { text: `Inbox files: ${settings.inboxRetentionDays} days` });
